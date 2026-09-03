@@ -1,0 +1,104 @@
+// Canonical data model — docs/02_Technical_Architecture.md.
+// This schema is law: field names here must match the API contract in
+// src/types/index.ts and the JSON returned by every route, exactly.
+//
+// Two agreed changes from doc 02 (see the decisions log in CLAUDE.md):
+//   D1 — DocumentStatus gains REJECTED, so a rejected document has a terminal
+//        state instead of sitting in the verify queue forever.
+//   D2 — ExtractedRecord.ulpin is @unique, because GET /api/mock/ngdrs/[ulpin]
+//        looks a record up by it.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  VERIFIER
+  VIEWER
+}
+
+enum DocumentStatus {
+  UPLOADED
+  PROCESSING
+  VERIFIED
+  FLAGGED
+  REJECTED
+}
+
+enum ValidationStatus {
+  PASS
+  FLAGGED
+  DUPLICATE
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String
+  role         Role       @default(VERIFIER)
+  documents    Document[]
+  auditLogs    AuditLog[]
+  createdAt    DateTime   @default(now())
+}
+
+model Document {
+  id           String            @id @default(cuid())
+  filename     String
+  filePath     String
+  status       DocumentStatus    @default(UPLOADED)
+  uploadedBy   User              @relation(fields: [uploadedById], references: [id])
+  uploadedById String
+  record       ExtractedRecord?
+  validation   ValidationResult?
+  auditLogs    AuditLog[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+model ExtractedRecord {
+  id                 String   @id @default(cuid())
+  document           Document @relation(fields: [documentId], references: [id])
+  documentId         String   @unique
+  ownerName          String?
+  surveyNumber       String?
+  khasraNumber       String?
+  khataNumber        String?
+  plotArea           String?
+  village            String?
+  tehsil             String?
+  district           String?
+  landClassification String?
+  ulpin              String?  @unique
+  confidence         Json // { fieldName: 0.0-1.0 }
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model ValidationResult {
+  id            String           @id @default(cuid())
+  document      Document         @relation(fields: [documentId], references: [id])
+  documentId    String           @unique
+  status        ValidationStatus
+  issues        Json // [{ field, issue }]
+  duplicateOfId String?
+  createdAt     DateTime         @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  document   Document @relation(fields: [documentId], references: [id])
+  documentId String
+  actor      User     @relation(fields: [actorId], references: [id])
+  actorId    String
+  action     String // "APPROVE" | "REJECT" | "EDIT_FIELD" | "UPLOAD"
+  before     Json?
+  after      Json?
+  timestamp  DateTime @default(now())
+}

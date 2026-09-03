@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sih
+      POSTGRES_PASSWORD: sih_local_dev
+      POSTGRES_DB: landrecords
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

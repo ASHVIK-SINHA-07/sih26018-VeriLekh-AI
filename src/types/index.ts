@@ -11,9 +11,33 @@ export type Role = "ADMIN" | "VERIFIER" | "VIEWER";
 export type DocumentStatus =
   | "UPLOADED"
   | "PROCESSING"
+  /** Extracted cleanly, awaiting a human's approval. Nothing reaches VERIFIED without one. */
+  | "PENDING"
   | "VERIFIED"
   | "FLAGGED"
   | "REJECTED";
+
+/** Statuses that put a document in the verification queue. */
+export const REVIEWABLE_STATUSES: DocumentStatus[] = ["PENDING", "FLAGGED"];
+
+/** Sentence-case labels for the UI. */
+export const STATUS_LABELS: Record<DocumentStatus, string> = {
+  UPLOADED: "Uploaded",
+  PROCESSING: "Processing",
+  PENDING: "Awaiting review",
+  VERIFIED: "Verified",
+  FLAGGED: "Flagged",
+  REJECTED: "Rejected",
+};
+
+/** File types accepted on upload — docs/04_Frontend_Spec.md. */
+export const ACCEPTED_UPLOAD_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "application/pdf",
+] as const;
+
+export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 
 export type ValidationStatus = "PASS" | "FLAGGED" | "DUPLICATE";
 

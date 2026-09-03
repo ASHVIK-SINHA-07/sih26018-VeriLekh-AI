@@ -7,6 +7,10 @@
 //        state instead of sitting in the verify queue forever.
 //   D2 — ExtractedRecord.ulpin is @unique, because GET /api/mock/ngdrs/[ulpin]
 //        looks a record up by it.
+//   D21 — DocumentStatus gains PENDING: a record that extracted cleanly is
+//        still awaiting a human's approval. Doc 02 calls this state
+//        "VERIFIED-candidate" but never added it to the enum. Nothing reaches
+//        VERIFIED without a person approving it.
 
 generator client {
   provider = "prisma-client-js"
@@ -26,6 +30,7 @@ enum Role {
 enum DocumentStatus {
   UPLOADED
   PROCESSING
+  PENDING
   VERIFIED
   FLAGGED
   REJECTED

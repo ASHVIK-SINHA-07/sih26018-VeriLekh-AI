@@ -236,8 +236,8 @@ export const SEED_DOCS: SeedDoc[] = [
     filename: "khatauni-lucknow-0388.svg",
     status: "FLAGGED", uploadedBy: "VERIFIER", daysAgo: 3, fasliYear: "1431",
     fields: {
-      ownerName: "सुनीता देवी", surveyNumber: "41", khasraNumber: "58/1",
-      khataNumber: "214", plotArea: "0.680", village: "भगवंतपुर",
+      ownerName: "सुनीता देवी", surveyNumber: "41", khasraNumber: "58/2",
+      khataNumber: "214", plotArea: "0.415", village: "भगवंतपुर",
       tehsil: "मलिहाबाद", district: "लखनऊ", landClassification: "असिंचित",
     },
     confidence: { ...HIGH, ownerName: 0.64 },
@@ -250,7 +250,7 @@ export const SEED_DOCS: SeedDoc[] = [
       ],
     },
     audit: [{ action: "UPLOAD", daysAgo: 3, by: "VERIFIER" }],
-    note: "PLANTED #2 — mismatched owner. Correct it to सुनीता देवी मिश्रा and approve.",
+    note: "PLANTED #2 — mismatched owner. Same khata 214 as lucknow-0219 but a different plot (58/2), so it is a genuine owner conflict rather than a duplicate parcel. Correct it to सुनीता देवी मिश्रा and approve.",
   },
   {
     key: "gorakhpur-0158",

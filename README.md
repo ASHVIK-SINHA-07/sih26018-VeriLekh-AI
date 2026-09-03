@@ -217,8 +217,8 @@ The system is built ticket by ticket in a fixed order.
 | T1 | Local database and Prisma schema | ✅ |
 | T2 | Auth, roles and route protection | ✅ |
 | T3 | Synthetic seed data with planted errors | ✅ |
-| T4 | OCR interface, extraction, validation, ULPIN | |
-| T5 | Document APIs | |
+| T4 | OCR interface, extraction, validation, ULPIN | ✅ |
+| T5 | Document APIs | ✅ |
 | T6 | Upload screen | |
 | T7 | Verification screen | |
 | T8 | Dashboard | |

@@ -54,6 +54,7 @@
   --color-surface: var(--surface);
   --color-status-uploaded: var(--status-uploaded);
   --color-status-processing: var(--status-processing);
+  --color-status-pending: var(--status-pending);
   --color-status-verified: var(--status-verified);
   --color-status-flagged: var(--status-flagged);
   --color-status-rejected: var(--status-rejected);
@@ -154,6 +155,9 @@
   /* Status colours */
   --status-uploaded: #5b6472;
   --status-processing: #c87941;
+  /* Awaiting review: no problem found, just needs a person. Navy, not amber —
+     amber means the pipeline is still working on it. */
+  --status-pending: #1f3864;
   --status-verified: #2e7d32;
   --status-flagged: #c0392b;
   --status-rejected: #5b6472;

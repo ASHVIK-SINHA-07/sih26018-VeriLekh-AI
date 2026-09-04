@@ -17,15 +17,15 @@ export function DistrictFilter({
   const current = params.get("district") ?? "";
 
   return (
-    <label className="flex items-center gap-2 text-sm">
-      <span className="text-muted-foreground">District</span>
+    <label className="flex items-center gap-2 text-[13px]">
+      <span className="label-cap">District</span>
       <select
         value={current}
         onChange={(event) => {
           const value = event.target.value;
           router.push(value ? `/dashboard?district=${encodeURIComponent(value)}` : "/dashboard");
         }}
-        className="h-8 rounded-lg border border-border bg-white px-2 text-sm outline-none focus-visible:border-navy"
+        className="h-8 border border-rule bg-panel px-2 text-[13px] outline-none focus-visible:border-navy"
       >
         <option value="">All districts</option>
         {districts.map((row) => (

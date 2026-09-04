@@ -1,23 +1,25 @@
 import { STATUS_LABELS, type DocumentStatus } from "@/types";
 
 /**
- * StatusBadge — docs/04_Frontend_Spec.md shared components.
- * A pill in the status colour. Labels are sentence case.
+ * StatusBadge — a stamped mark, not a pill.
+ *
+ * Square corners and a thin rule in the status colour, the way a clerk's
+ * rubber stamp sits on a register page. No fill beyond a faint tint, so a
+ * column of these reads as annotation rather than decoration.
  */
-
 const STYLES: Record<DocumentStatus, string> = {
-  UPLOADED: "bg-status-uploaded/10 text-status-uploaded border-status-uploaded/25",
-  PROCESSING: "bg-status-processing/10 text-status-processing border-status-processing/30",
-  PENDING: "bg-status-pending/10 text-status-pending border-status-pending/25",
-  VERIFIED: "bg-status-verified/10 text-status-verified border-status-verified/30",
-  FLAGGED: "bg-status-flagged/10 text-status-flagged border-status-flagged/30",
-  REJECTED: "bg-status-rejected/10 text-status-rejected border-status-rejected/25",
+  UPLOADED: "border-status-uploaded/45 text-status-uploaded",
+  PROCESSING: "border-status-processing/55 text-status-processing",
+  PENDING: "border-status-pending/45 text-status-pending",
+  VERIFIED: "border-status-verified/55 text-status-verified",
+  FLAGGED: "border-status-flagged/55 text-status-flagged",
+  REJECTED: "border-status-rejected/45 text-status-rejected",
 };
 
 export function StatusBadge({ status }: { status: DocumentStatus }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${STYLES[status]}`}
+      className={`inline-flex items-center border px-2 py-[3px] text-[11px] font-medium tracking-[0.06em] whitespace-nowrap uppercase ${STYLES[status]}`}
     >
       {STATUS_LABELS[status]}
     </span>

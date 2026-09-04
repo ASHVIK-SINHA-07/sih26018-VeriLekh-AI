@@ -1,22 +1,31 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Noto_Sans_Devanagari } from "next/font/google";
+import { Inter, Lora, Noto_Sans_Devanagari } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
+/**
+ * Two faces, used for two jobs.
+ *
+ * Lora sets headings and the large figures — a serif reads as an official
+ * register rather than a product dashboard. Inter carries body text, controls
+ * and tabular data, where a neutral sans is easier to scan.
+ */
+const lora = Lora({
+  variable: "--font-serif",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-// Land records are in Devanagari; Geist has no Devanagari coverage, so raw
-// OCR text renders in this face. See docs/01_PRD.md on regional scripts.
+/** Land records are in Devanagari; neither face above covers that script. */
 const notoDevanagari = Noto_Sans_Devanagari({
   variable: "--font-devanagari",
   subsets: ["devanagari", "latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -33,7 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${notoDevanagari.variable} antialiased`}
+        className={`${lora.variable} ${inter.variable} ${notoDevanagari.variable} antialiased`}
       >
         {children}
       </body>

@@ -93,7 +93,7 @@ export default async function VerifyDetailPage({
   }));
 
   return (
-    <div className="space-y-8">
+    <div>
     <VerifyClient
       documentId={document.id}
       filename={document.filename}
@@ -104,7 +104,7 @@ export default async function VerifyDetailPage({
       validation={validation}
       duplicateOf={duplicateOf}
     />
-    <AuditTrail entries={auditEntries} />
+    <div className="px-7 pb-7"><AuditTrail entries={auditEntries} /></div>
     </div>
   );
 }

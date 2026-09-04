@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { FieldEditor } from "@/components/field-editor";
 import { NgdrsPanel } from "@/components/ngdrs-panel";
+import { ScanViewer } from "@/components/scan-viewer";
+import { Panel } from "@/components/panel";
 import {
   EXTRACTED_FIELD_NAMES,
   FIELD_LABELS,
@@ -96,45 +98,50 @@ export function VerifyClient(props: Props) {
   const scanUrl = `/api/documents/${props.documentId}/file`;
 
   return (
-    <section className="space-y-5">
+    <section>
       {/* ------------------------------------------------------------ header */}
-      <div className="flex flex-wrap items-center gap-3">
-        <Link href="/verify" className="text-sm text-navy underline underline-offset-2">
+      <div className="border-b border-hairline bg-panel px-7 py-4">
+        <Link
+          href="/verify"
+          className="text-[12.5px] text-navy hover:underline"
+        >
           ← Back to queue
         </Link>
-        <span className="text-muted-foreground">·</span>
-        <h1 className="text-lg font-medium text-navy">{props.filename}</h1>
-        <StatusBadge status={props.status} />
-        {props.fields.ulpin ? (
-          <span className="font-mono text-xs text-muted-foreground">
-            {props.fields.ulpin}
-          </span>
-        ) : null}
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <h1 className="text-[1.375rem]">{props.filename}</h1>
+          <StatusBadge status={props.status} />
+          {props.fields.ulpin ? (
+            <span className="border border-hairline bg-panel-alt px-2 py-1 font-mono text-[11.5px] tracking-tight text-ink-2 tabular-nums">
+              {props.fields.ulpin}
+            </span>
+          ) : null}
+        </div>
       </div>
 
+      <div className="space-y-4 px-7 pt-5">
       {/* -------------------------------------------------- validation banner */}
       {props.validation && props.validation.issues.length > 0 ? (
         <div
-          className={`rounded-lg border px-4 py-3 ${
+          className={`border-l-[3px] bg-panel px-4 py-3 ${
             props.validation.status === "DUPLICATE"
-              ? "border-status-flagged/40 bg-status-flagged/5"
-              : "border-low-confidence/40 bg-low-confidence/5"
-          }`}
+              ? "border-l-status-flagged"
+              : "border-l-low-confidence"
+          } border-y border-r border-y-hairline border-r-hairline`}
         >
-          <p className="text-sm font-medium text-foreground">
+          <p className="text-[13.5px] font-semibold text-foreground">
             {props.validation.status === "DUPLICATE"
               ? "This looks like a parcel that is already recorded"
               : `${props.validation.issues.length} thing${props.validation.issues.length === 1 ? "" : "s"} to check before approving`}
           </p>
           <ul className="mt-2 space-y-1">
             {props.validation.issues.map((issue, index) => (
-              <li key={`${issue.field}-${index}`} className="text-sm text-muted-foreground">
+              <li key={`${issue.field}-${index}`} className="text-[12.5px] text-ink-2">
                 · {issue.issue}
               </li>
             ))}
           </ul>
           {props.duplicateOf ? (
-            <p className="mt-2 text-sm">
+            <p className="mt-2 text-[12.5px]">
               <Link
                 href={`/verify/${props.duplicateOf.id}`}
                 className="text-navy underline underline-offset-2"
@@ -150,51 +157,35 @@ export function VerifyClient(props: Props) {
       {props.status === "VERIFIED" && props.fields.ulpin ? (
         <NgdrsPanel ulpin={props.fields.ulpin} />
       ) : null}
+      </div>
 
       {/* ------------------------------------------------------ two columns */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-5 p-7 pt-4 xl:grid-cols-2">
         {/* left: the scan */}
-        <div className="space-y-2">
-          <h2 className="text-sm font-medium text-navy">Scanned record</h2>
-          <div className="overflow-hidden rounded-lg border border-border bg-white">
-            {isPdf ? (
-              <object
-                data={scanUrl}
-                type="application/pdf"
-                className="h-[36rem] w-full"
-                aria-label={`Scan of ${props.filename}`}
-              >
-                <p className="p-4 text-sm text-muted-foreground">
-                  This PDF cannot be shown inline.{" "}
-                  <a href={scanUrl} className="text-navy underline">Open it directly</a>.
-                </p>
-              </object>
-            ) : (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={scanUrl}
-                alt={`Scan of ${props.filename}`}
-                className="w-full object-contain"
-              />
-            )}
+        <Panel title="Scanned record" meta="Scroll or click to zoom · drag to move">
+          <div>
+            <ScanViewer src={scanUrl} filename={props.filename} isPdf={isPdf} />
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="border-t border-hairline px-4 py-2 text-[12px] text-muted-foreground">
             Faded areas on the scan are where the reader was least certain.
           </p>
-        </div>
+        </Panel>
 
         {/* right: the fields */}
         <div className="space-y-4">
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-sm font-medium text-navy">Extracted fields</h2>
-            {edited.size > 0 ? (
-              <span className="text-xs text-status-verified">
-                {edited.size} field{edited.size === 1 ? "" : "s"} corrected
-              </span>
-            ) : null}
-          </div>
-
-          <div className="space-y-4 rounded-lg border border-border bg-white p-4">
+          <Panel
+            title="Extracted fields"
+            meta={
+              edited.size > 0 ? (
+                <span className="text-status-verified">
+                  {edited.size} field{edited.size === 1 ? "" : "s"} corrected
+                </span>
+              ) : (
+                "Low-confidence fields are marked"
+              )
+            }
+            bodyClassName="grid gap-4 p-4 sm:grid-cols-2"
+          >
             {EXTRACTED_FIELD_NAMES.map((field) => (
               <FieldEditor
                 key={field}
@@ -209,21 +200,21 @@ export function VerifyClient(props: Props) {
                 }
               />
             ))}
-          </div>
+          </Panel>
 
           {error ? (
-            <p role="alert" className="text-sm text-status-flagged">{error}</p>
+            <p role="alert" className="border border-status-flagged/40 bg-status-flagged/[0.05] px-3 py-2 text-[13px] text-status-flagged">{error}</p>
           ) : null}
 
           {/* ------------------------------------------------------ actions */}
           {decided ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="border border-hairline bg-panel px-4 py-3 text-[13px] text-muted-foreground">
               This record has already been{" "}
               {props.status === "VERIFIED" ? "approved" : "rejected"}. Its history
               is in the audit trail.
             </p>
           ) : (
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 border border-hairline bg-panel px-4 py-3">
               <Button
                 variant="outline"
                 disabled={submitting !== null}
@@ -237,7 +228,7 @@ export function VerifyClient(props: Props) {
               >
                 {submitting === "approve" ? "Approving…" : "Approve"}
               </Button>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-[12px] text-muted-foreground">
                 Approving commits the record and issues a ULPIN-style id.
               </span>
             </div>

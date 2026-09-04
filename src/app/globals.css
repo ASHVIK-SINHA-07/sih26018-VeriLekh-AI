@@ -8,8 +8,9 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
   --font-devanagari: var(--font-devanagari);
+  --font-serif: var(--font-serif);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -55,6 +56,20 @@
   --color-status-uploaded: var(--status-uploaded);
   --color-status-processing: var(--status-processing);
   --color-status-pending: var(--status-pending);
+  --color-hairline: var(--hairline);
+  --color-rule: var(--rule);
+  --color-ground: var(--ground);
+  --color-panel: var(--panel);
+  --color-panel-alt: var(--panel-alt);
+  --color-rail: var(--rail);
+  --color-rail-2: var(--rail-2);
+  --color-rail-muted: var(--rail-muted);
+  --color-rail-ink: var(--rail-ink);
+  --color-ink-2: var(--ink-2);
+  --color-hairline: var(--hairline);
+  --color-rule: var(--rule);
+  --color-paper: var(--paper);
+  --color-field: var(--field);
   --color-status-verified: var(--status-verified);
   --color-status-flagged: var(--status-flagged);
   --color-status-rejected: var(--status-rejected);
@@ -142,41 +157,98 @@
   }
 }
 /* ---------------------------------------------------------------
-   SIH26018 palette — docs/04_Frontend_Spec.md
-   Primary navy, accent terracotta, light-gray surface.
-   Fixed light theme: this is a government back-office tool, so the
-   `.dark` block above is never activated (no `dark` class is set).
+   SIH26018 — operations console.
+
+   A dark navy rail carries navigation and identity; work happens on crisp
+   white panels over a warm ground. Contrast is deliberate: this gets shown on
+   a projector, where low-contrast beige-on-beige disappears.
+
+   No rounded cards, no drop shadows, no gradients. Separation comes from a
+   1px rule and from the value change between panel and ground.
    --------------------------------------------------------------- */
 :root {
+  /* Ground and panels */
+  --ground: #eceae4;         /* the page behind everything */
+  --panel: #ffffff;          /* where data lives */
+  --panel-alt: #f7f6f2;      /* table heads, inset blocks */
+
+  /* Ink */
+  --ink: #14181f;            /* near-black, not pure */
+  --ink-2: #3d4552;          /* secondary text */
+  --ink-muted: #6b7280;      /* labels, meta */
+
+  /* Rules */
+  --hairline: #ddd9cf;
+  --rule: #c4bfb2;
+
+  /* Navigation rail */
+  --rail: #16274a;
+  --rail-2: #1f3864;         /* hover / active fill */
+  --rail-ink: #ffffff;
+  --rail-muted: #9dabc6;
+
+  /* Brand */
   --navy: #1f3864;
   --terracotta: #c87941;
-  --surface: #f7f7f5;
 
-  /* Status colours */
-  --status-uploaded: #5b6472;
-  --status-processing: #c87941;
-  /* Awaiting review: no problem found, just needs a person. Navy, not amber —
-     amber means the pipeline is still working on it. */
+  /* Status */
+  --status-uploaded: #6b7280;
+  --status-processing: #b3661f;
   --status-pending: #1f3864;
-  --status-verified: #2e7d32;
-  --status-flagged: #c0392b;
-  --status-rejected: #5b6472;
-  --low-confidence: #c87941;
+  --status-verified: #1f7a33;
+  --status-flagged: #b3261e;
+  --status-rejected: #6b7280;
+  --low-confidence: #b3661f;
 
-  /* Map shadcn semantics onto the brand palette */
+  /* shadcn semantics */
+  --background: var(--ground);
+  --foreground: var(--ink);
+  --card: var(--panel);
+  --card-foreground: var(--ink);
+  --popover: var(--panel);
+  --popover-foreground: var(--ink);
   --primary: var(--navy);
   --primary-foreground: #ffffff;
-  --ring: var(--navy);
-  --secondary: var(--surface);
+  --secondary: var(--panel-alt);
   --secondary-foreground: var(--navy);
-  --muted: var(--surface);
-  --muted-foreground: #5b6472;
+  --muted: var(--panel-alt);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--panel-alt);
+  --accent-foreground: var(--navy);
+  --border: var(--hairline);
+  --input: var(--rule);
+  --ring: var(--navy);
   --destructive: var(--status-flagged);
+  --radius: 0px;
 
-  /* Dashboard chart series */
   --chart-1: var(--navy);
   --chart-2: var(--terracotta);
   --chart-3: var(--status-verified);
-  --chart-4: #5b6472;
+  --chart-4: var(--ink-muted);
   --chart-5: var(--status-flagged);
+}
+
+@layer base {
+  body {
+    background-color: var(--ground);
+    color: var(--ink);
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+
+  /* One type scale, used everywhere. */
+  h1 { font-family: var(--font-serif), Cambria, Georgia, serif; font-size: 1.75rem; line-height: 1.15; font-weight: 500; letter-spacing: -0.015em; }
+  h2 { font-size: 0.9375rem; font-weight: 600; letter-spacing: 0.01em; }
+  h3 { font-size: 0.8125rem; font-weight: 600; }
+
+  table, .tabular { font-variant-numeric: tabular-nums; }
+}
+
+/* Small uppercase label used for table heads and field captions. */
+@utility label-cap {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
 }

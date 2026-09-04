@@ -24,34 +24,35 @@ export function TrendChart({
   const busiest = Math.max(1, ...shaped.map((point) => point.count));
 
   return (
-    <div className="h-64 w-full">
+    <div className="h-52 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={shaped} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e6e4de" vertical={false} />
+          <CartesianGrid stroke="#d8d2c4" strokeWidth={1} vertical={false} />
           <XAxis
             dataKey="label"
-            tick={{ fontSize: 11, fill: "#5b6472" }}
+            tick={{ fontSize: 11, fill: "#6b6558" }}
             tickLine={false}
-            axisLine={{ stroke: "#e6e4de" }}
+            axisLine={{ stroke: "#b9b1a0" }}
             interval="preserveStartEnd"
           />
           <YAxis
             allowDecimals={false}
             domain={[0, busiest]}
-            tick={{ fontSize: 11, fill: "#5b6472" }}
+            tick={{ fontSize: 11, fill: "#6b6558" }}
             tickLine={false}
             axisLine={false}
           />
           <Tooltip
-            cursor={{ fill: "#1f386410" }}
+            cursor={{ fill: "#1f386412" }}
             contentStyle={{
-              borderRadius: 8,
-              border: "1px solid #e6e4de",
+              borderRadius: 0,
+              border: "1px solid #b9b1a0",
+              background: "#fffdf9",
               fontSize: 12,
             }}
             formatter={(value) => [`${Number(value ?? 0)}`, "Documents"]}
           />
-          <Bar dataKey="count" fill="#1f3864" radius={[3, 3, 0, 0]} maxBarSize={38} />
+          <Bar dataKey="count" fill="#1f3864" maxBarSize={34} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>

@@ -46,7 +46,7 @@ export function FieldEditor({
           </span>
         ) : typeof confidence === "number" ? (
           <span
-            className={`text-xs ${lowConfidence ? "text-low-confidence" : "text-muted-foreground"}`}
+            className={`text-[11px] tabular-nums ${lowConfidence ? "text-low-confidence" : "text-muted-foreground"}`}
           >
             {asPercent(confidence)} confident
           </span>
@@ -61,10 +61,10 @@ export function FieldEditor({
         onChange={(event) => onChange(event.target.value)}
         className={
           edited
-            ? "border-status-verified focus-visible:border-status-verified"
+            ? "bg-field border-status-verified focus-visible:border-status-verified"
             : lowConfidence
-              ? "border-low-confidence bg-low-confidence/5 focus-visible:border-low-confidence"
-              : undefined
+              ? "border-low-confidence bg-low-confidence/[0.06] focus-visible:border-low-confidence"
+              : "bg-field"
         }
       />
 

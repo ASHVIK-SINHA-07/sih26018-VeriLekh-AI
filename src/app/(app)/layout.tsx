@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { AppNav } from "@/components/app-nav";
+import { SideRail } from "@/components/side-rail";
 
 /**
- * Shell for every signed-in screen. The middleware already blocks anonymous
- * requests to these routes; this re-reads the session server-side so the nav
- * can be role-gated, and fails closed if it is somehow absent.
+ * Shell for every signed-in screen: fixed navigation rail, scrolling work
+ * area. The middleware already blocks anonymous requests here; this re-reads
+ * the session so the rail can be role-gated, and fails closed regardless.
  */
 export default async function AppLayout({
   children,
@@ -13,15 +13,12 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-
-  if (!session?.user) {
-    redirect("/login");
-  }
+  if (!session?.user) redirect("/login");
 
   return (
-    <div className="min-h-screen bg-surface">
-      <AppNav name={session.user.name ?? "Unknown user"} role={session.user.role} />
-      <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+    <div className="flex min-h-screen">
+      <SideRail name={session.user.name ?? "Unknown user"} role={session.user.role} />
+      <main className="min-w-0 flex-1">{children}</main>
     </div>
   );
 }

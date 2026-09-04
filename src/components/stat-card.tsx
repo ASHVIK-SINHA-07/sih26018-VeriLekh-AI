@@ -1,7 +1,9 @@
 /**
- * StatCard — docs/04_Frontend_Spec.md shared components.
- * Label plus a big number. Callers pass an already-formatted string: every
- * number on screen is rounded before it gets here (CLAUDE.md guardrail).
+ * One figure in the KPI strip.
+ *
+ * A tile in a ruled row, not a floating card: separation is a single vertical
+ * rule between neighbours. The figure is the largest thing on the screen and
+ * carries a coloured accent bar when it needs attention.
  */
 export function StatCard({
   label,
@@ -14,21 +16,24 @@ export function StatCard({
   hint?: string;
   tone?: "default" | "flagged" | "pending";
 }) {
-  const valueColour =
+  const accent =
     tone === "flagged"
-      ? "text-status-flagged"
+      ? "bg-status-flagged"
       : tone === "pending"
-        ? "text-status-pending"
-        : "text-navy";
+        ? "bg-status-pending"
+        : "bg-navy";
+  const figure =
+    tone === "flagged" ? "text-status-flagged" : "text-navy";
 
   return (
-    <div className="rounded-lg border border-border bg-white p-4">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className={`mt-1 text-3xl font-semibold tabular-nums ${valueColour}`}>
+    <div className="relative flex-1 px-6 py-5">
+      <span className={`absolute top-5 bottom-5 left-0 w-[3px] ${accent}`} />
+      <p className="label-cap">{label}</p>
+      <p className={`mt-2 font-serif text-[2.5rem] leading-none tabular-nums ${figure}`}>
         {value}
       </p>
       {hint ? (
-        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+        <p className="mt-2 text-[12px] text-muted-foreground">{hint}</p>
       ) : null}
     </div>
   );

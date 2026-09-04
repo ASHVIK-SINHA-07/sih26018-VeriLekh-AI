@@ -64,39 +64,39 @@ function describe(entry: AuditLogEntry): string | null {
 
 export function AuditTrail({ entries }: { entries: AuditLogEntry[] }) {
   return (
-    <section className="space-y-3">
-      <div>
-        <h2 className="text-sm font-medium text-navy">Audit trail</h2>
-        <p className="text-xs text-muted-foreground">
+    <section className="border border-hairline bg-panel">
+      <div className="border-b border-hairline bg-panel-alt px-4 py-2.5">
+        <h2>Audit trail</h2>
+        <p className="text-[12px] text-muted-foreground">
           Every change to this record, in order. Append-only — entries cannot be
           edited or removed.
         </p>
       </div>
 
       {entries.length === 0 ? (
-        <EmptyState title="No history yet" hint="Actions on this record will appear here." />
+        <div className="p-4"><EmptyState title="No history yet" hint="Actions on this record will appear here." /></div>
       ) : (
-        <ol className="divide-y divide-border rounded-lg border border-border bg-white">
+        <ol className="divide-y divide-hairline">
           {entries.map((entry) => {
             const detail = describe(entry);
             return (
-              <li key={entry.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-3">
+              <li key={entry.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-2.5">
                 <span
                   className={`text-sm font-medium ${ACTION_COLOURS[entry.action] ?? "text-foreground"}`}
                 >
                   {ACTION_LABELS[entry.action] ?? entry.action}
                 </span>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-[12.5px] text-muted-foreground">
                   {entry.actorName} · {ROLE_LABELS[entry.actorRole] ?? entry.actorRole}
                 </span>
-                <span className="ml-auto text-xs text-muted-foreground">
+                <span className="ml-auto text-xs text-muted-foreground tabular-nums">
                   {new Date(entry.timestamp).toLocaleString("en-IN", {
                     dateStyle: "medium",
                     timeStyle: "short",
                   })}
                 </span>
                 {detail ? (
-                  <p className="w-full text-sm text-muted-foreground">{detail}</p>
+                  <p className="w-full text-[12.5px] text-ink-2">{detail}</p>
                 ) : null}
               </li>
             );

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { ScreenHeader } from "@/components/screen-header";
 import { UploadClient } from "./upload-client";
 import type { DocumentListItem } from "@/types";
 
@@ -35,16 +36,14 @@ export default async function UploadPage() {
   }));
 
   return (
-    <section className="space-y-6">
-      <header>
-        <h1 className="text-xl font-medium text-navy">Upload records</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Add scanned land records. Each one is read, extracted and checked
-          automatically, then queued for your review.
-        </p>
-      </header>
-
-      <UploadClient recent={recent} />
-    </section>
+    <>
+      <ScreenHeader
+        title="Upload records"
+        subtitle="Each record is read, extracted and checked automatically, then queued for review."
+      />
+      <div className="p-7">
+        <UploadClient recent={recent} />
+      </div>
+    </>
   );
 }

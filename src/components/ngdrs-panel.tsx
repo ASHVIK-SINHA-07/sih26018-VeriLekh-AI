@@ -35,11 +35,11 @@ export function NgdrsPanel({ ulpin }: { ulpin: string }) {
   }
 
   return (
-    <div className="space-y-3 rounded-lg border border-border bg-white p-4">
+    <div className="space-y-3 border border-hairline bg-panel px-4 py-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-medium text-navy">Registry integration</h2>
-          <p className="text-xs text-muted-foreground">
+          <h2>Registry integration</h2>
+          <p className="text-[12px] text-muted-foreground">
             Simulated — nothing is sent to NGDRS, DILRMP or any government system.
           </p>
         </div>
@@ -54,10 +54,10 @@ export function NgdrsPanel({ ulpin }: { ulpin: string }) {
 
       {payload ? (
         <div className="space-y-2">
-          <p className="text-xs font-medium text-terracotta">
+          <p className="label-cap text-terracotta">
             Simulated response — generated locally from this record
           </p>
-          <pre className="max-h-80 overflow-auto rounded-lg bg-surface p-3 text-xs leading-relaxed">
+          <pre className="max-h-80 overflow-auto border border-hairline bg-panel-alt p-3 text-[11.5px] leading-relaxed">
             {payload}
           </pre>
         </div>

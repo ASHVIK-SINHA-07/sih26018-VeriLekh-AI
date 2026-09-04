@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/empty-state";
+import { Panel } from "@/components/panel";
 import { asRelativeTime } from "@/lib/format";
 import {
   ACCEPTED_UPLOAD_TYPES,
@@ -150,16 +151,14 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
           setDragging(false);
           void handleFiles(event.dataTransfer.files);
         }}
-        className={`rounded-lg border-2 border-dashed px-6 py-12 text-center transition-colors ${
+        className={`border-2 border-dashed px-6 py-10 text-center transition-colors ${
           dragging
-            ? "border-terracotta bg-terracotta/5"
-            : "border-border bg-white"
+            ? "border-terracotta bg-terracotta/[0.06]"
+            : "border-rule bg-panel"
         }`}
       >
-        <p className="text-sm font-medium text-foreground">
-          Drag scanned records here
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="text-[15px] font-semibold text-navy">Drag scanned records here</p>
+        <p className="mt-1 text-[13px] text-muted-foreground">
           or browse for files on your computer
         </p>
 
@@ -173,7 +172,7 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
           {busy ? "Working…" : "Browse files"}
         </Button>
 
-        <p className="mt-4 text-xs text-muted-foreground">
+        <p className="label-cap mt-4">
           JPG, PNG or PDF · up to {MAX_MB} MB each · several at once is fine
         </p>
 
@@ -193,88 +192,90 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
       {/* --------------------------------------------------- in-flight queue */}
       {queue.length > 0 ? (
         <section className="space-y-3">
-          <h2 className="text-sm font-medium text-navy">This batch</h2>
-          <ul className="divide-y divide-border rounded-lg border border-border bg-white">
+          <Panel title="This batch" meta={`${queue.length} file${queue.length === 1 ? "" : "s"}`}>
+          <ul className="divide-y divide-hairline">
             {queue.map((item) => (
               <li
                 key={item.key}
-                className="flex flex-wrap items-center gap-3 px-4 py-3"
+                className="grid grid-cols-[1fr_18.5rem_4.5rem] items-center gap-3 px-4 py-2.5 text-[13px]"
               >
-                <span className="min-w-0 flex-1 truncate text-sm">
-                  {item.filename}
+                <span className="min-w-0 truncate font-medium">{item.filename}</span>
+
+                <span>
+                  {item.stage === "done" && item.status ? (
+                    <StatusBadge status={item.status} />
+                  ) : item.stage === "error" ? (
+                    <span className="text-sm text-status-flagged">
+                      {item.message}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      {STAGE_LABEL[item.stage]}
+                    </span>
+                  )}
                 </span>
 
-                {item.stage === "done" && item.status ? (
-                  <StatusBadge status={item.status} />
-                ) : item.stage === "error" ? (
-                  <span className="text-sm text-status-flagged">
-                    {item.message}
-                  </span>
-                ) : (
-                  <span className="text-sm text-muted-foreground">
-                    {STAGE_LABEL[item.stage]}
-                  </span>
-                )}
-
-                {item.documentId && item.stage === "done" ? (
-                  <Link
-                    href={`/verify/${item.documentId}`}
-                    className="text-sm text-navy underline underline-offset-2"
-                  >
-                    Review
-                  </Link>
-                ) : null}
+                <span className="text-right">
+                  {item.documentId && item.stage === "done" ? (
+                    <Link
+                      href={`/verify/${item.documentId}`}
+                      className="text-[12.5px] font-medium text-navy hover:underline"
+                    >
+                      Review
+                    </Link>
+                  ) : null}
+                </span>
               </li>
             ))}
           </ul>
+          </Panel>
         </section>
       ) : null}
 
       {/* ------------------------------------------------- recent uploads */}
       <section className="space-y-3">
-        <h2 className="text-sm font-medium text-navy">Recent uploads</h2>
-
+        <Panel title="Recent uploads" meta={`${recent.length} most recent`}>
         {recent.length === 0 ? (
-          <EmptyState
-            title="No documents yet"
-            hint="Upload a scanned record to begin."
-          />
+          <div className="p-6">
+            <EmptyState title="No documents yet" hint="Upload a scanned record to begin." />
+          </div>
         ) : (
-          <ul className="divide-y divide-border rounded-lg border border-border bg-white">
+          <ul className="divide-y divide-hairline">
             {recent.map((document) => {
               const reviewable = REVIEWABLE_STATUSES.includes(document.status);
               return (
                 <li
                   key={document.id}
-                  className="flex flex-wrap items-center gap-3 px-4 py-3"
+                  className="grid grid-cols-[1fr_9rem_10.5rem_7rem_4.5rem] items-center gap-3 px-4 py-2.5 text-[13px] transition-colors hover:bg-panel-alt/70"
                 >
-                  <span className="min-w-0 flex-1 truncate text-sm">
+                  <span className="min-w-0 truncate font-medium">
                     {document.filename}
                   </span>
-                  {document.district ? (
-                    <span className="text-sm text-muted-foreground">
-                      {document.district}
-                    </span>
-                  ) : null}
-                  <StatusBadge status={document.status} />
-                  <span className="w-24 text-right text-xs text-muted-foreground">
+                  <span className="truncate text-ink-2">
+                    {document.district ?? ""}
+                  </span>
+                  <span>
+                    <StatusBadge status={document.status} />
+                  </span>
+                  <span className="text-right text-[12px] text-muted-foreground tabular-nums">
                     {asRelativeTime(document.updatedAt)}
                   </span>
-                  {reviewable ? (
-                    <Link
-                      href={`/verify/${document.id}`}
-                      className="text-sm text-navy underline underline-offset-2"
-                    >
-                      Review
-                    </Link>
-                  ) : (
-                    <span className="w-12" aria-hidden />
-                  )}
+                  <span className="text-right">
+                    {reviewable ? (
+                      <Link
+                        href={`/verify/${document.id}`}
+                        className="text-[12.5px] font-medium text-navy hover:underline"
+                      >
+                        Review
+                      </Link>
+                    ) : null}
+                  </span>
                 </li>
               );
             })}
           </ul>
         )}
+        </Panel>
       </section>
     </div>
   );

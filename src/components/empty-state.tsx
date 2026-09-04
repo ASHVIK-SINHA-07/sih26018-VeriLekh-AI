@@ -1,6 +1,5 @@
 /**
- * Empty state — docs/04_Frontend_Spec.md: every list and table has one.
- * A blank panel with no explanation reads as a bug.
+ * Empty state — a ruled note on the paper, not a dashed box.
  */
 export function EmptyState({
   title,
@@ -10,10 +9,10 @@ export function EmptyState({
   hint?: string;
 }) {
   return (
-    <div className="rounded-lg border border-dashed border-border bg-white/50 px-6 py-10 text-center">
-      <p className="text-sm font-medium text-foreground">{title}</p>
+    <div className="border border-dashed border-rule px-6 py-10 text-center">
+      <p className="text-[14px] font-medium text-foreground">{title}</p>
       {hint ? (
-        <p className="mt-1 text-sm text-muted-foreground">{hint}</p>
+        <p className="mt-1 text-[13px] text-muted-foreground">{hint}</p>
       ) : null}
     </div>
   );

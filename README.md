@@ -221,7 +221,7 @@ The system is built ticket by ticket in a fixed order.
 | T5 | Document APIs | ✅ |
 | T6 | Upload screen | ✅ |
 | T7 | Verification screen | ✅ |
-| T8 | Dashboard | |
+| T8 | Dashboard | ✅ |
 | T9 | Simulated integration endpoint | |
 | T10 | Polish and audit view | |
 

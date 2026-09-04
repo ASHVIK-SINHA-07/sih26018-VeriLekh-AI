@@ -18,6 +18,7 @@
 export type SeedStatus =
   | "UPLOADED"
   | "PROCESSING"
+  | "PENDING"
   | "VERIFIED"
   | "FLAGGED"
   | "REJECTED";
@@ -337,6 +338,35 @@ export const SEED_DOCS: SeedDoc[] = [
         { field: "landClassification", issue: "Low confidence — 74%" },
       ],
     },
+    audit: [{ action: "UPLOAD", daysAgo: 0, by: "ADMIN" }],
+  },
+
+  /* ------------------------------------ pending: extracted cleanly, awaiting a person */
+  {
+    key: "varanasi-0588",
+    filename: "khatauni-varanasi-0588.svg",
+    status: "PENDING", uploadedBy: "VERIFIER", daysAgo: 1, fasliYear: "1431",
+    fields: {
+      ownerName: "इंदु बाला सिंह", surveyNumber: "73", khasraNumber: "301/2",
+      khataNumber: "156", plotArea: "0.870", village: "रामपुर खुर्द",
+      tehsil: "पिंडरा", district: "वाराणसी", landClassification: "सिंचित",
+    },
+    confidence: HIGH, ulpin: null,
+    validation: { status: "PASS", issues: [] },
+    audit: [{ action: "UPLOAD", daysAgo: 1, by: "VERIFIER" }],
+    note: "Clean extraction — one-click approve. Shows the fast path next to a flagged record.",
+  },
+  {
+    key: "prayagraj-0121",
+    filename: "khatauni-prayagraj-0121.svg",
+    status: "PENDING", uploadedBy: "ADMIN", daysAgo: 0, fasliYear: "1431",
+    fields: {
+      ownerName: "जगदीश नारायण पांडेय", surveyNumber: "142", khasraNumber: "64",
+      khataNumber: "89", plotArea: "1.560", village: "मुबारकपुर",
+      tehsil: "सोरांव", district: "प्रयागराज", landClassification: "असिंचित",
+    },
+    confidence: { ...HIGH, plotArea: 0.88 }, ulpin: null,
+    validation: { status: "PASS", issues: [] },
     audit: [{ action: "UPLOAD", daysAgo: 0, by: "ADMIN" }],
   },
 

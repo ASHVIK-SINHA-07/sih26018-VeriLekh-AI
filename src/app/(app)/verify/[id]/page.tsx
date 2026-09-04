@@ -3,9 +3,10 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fromJson } from "@/lib/json";
+import { AuditTrail } from "@/components/audit-trail";
 import { VerifyClient } from "./verify-client";
 import type {
-  ConfidenceMap, ExtractedFields, ValidationIssue, ValidationSummary,
+  AuditLogEntry, ConfidenceMap, ExtractedFields, ValidationIssue, ValidationSummary,
 } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +25,14 @@ export default async function VerifyDetailPage({
 
   const document = await db.document.findUnique({
     where: { id },
-    include: { record: true, validation: true },
+    include: {
+      record: true,
+      validation: true,
+      auditLogs: {
+        orderBy: { timestamp: "asc" },
+        include: { actor: { select: { name: true, role: true } } },
+      },
+    },
   });
 
   if (!document) notFound();
@@ -74,7 +82,18 @@ export default async function VerifyDetailPage({
     }
   }
 
+  const auditEntries: AuditLogEntry[] = document.auditLogs.map((entry) => ({
+    id: entry.id,
+    action: entry.action,
+    actorName: entry.actor.name,
+    actorRole: entry.actor.role,
+    before: entry.before,
+    after: entry.after,
+    timestamp: entry.timestamp.toISOString(),
+  }));
+
   return (
+    <div className="space-y-8">
     <VerifyClient
       documentId={document.id}
       filename={document.filename}
@@ -85,5 +104,7 @@ export default async function VerifyDetailPage({
       validation={validation}
       duplicateOf={duplicateOf}
     />
+    <AuditTrail entries={auditEntries} />
+    </div>
   );
 }

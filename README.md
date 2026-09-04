@@ -222,8 +222,8 @@ The system is built ticket by ticket in a fixed order.
 | T6 | Upload screen | ✅ |
 | T7 | Verification screen | ✅ |
 | T8 | Dashboard | ✅ |
-| T9 | Simulated integration endpoint | |
-| T10 | Polish and audit view | |
+| T9 | Simulated integration endpoint | ✅ |
+| T10 | Polish and audit view | ✅ |
 
 ## Roadmap
 

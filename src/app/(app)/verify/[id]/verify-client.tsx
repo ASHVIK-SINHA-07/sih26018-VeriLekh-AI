@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { FieldEditor } from "@/components/field-editor";
+import { NgdrsPanel } from "@/components/ngdrs-panel";
 import {
   EXTRACTED_FIELD_NAMES,
   FIELD_LABELS,
@@ -143,6 +144,11 @@ export function VerifyClient(props: Props) {
             </p>
           ) : null}
         </div>
+      ) : null}
+
+      {/* --------------------------------- simulated registry push (T9) */}
+      {props.status === "VERIFIED" && props.fields.ulpin ? (
+        <NgdrsPanel ulpin={props.fields.ulpin} />
       ) : null}
 
       {/* ------------------------------------------------------ two columns */}

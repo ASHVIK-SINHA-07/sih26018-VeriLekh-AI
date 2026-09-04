@@ -32,6 +32,20 @@ export function landingPageFor(role: Role): string {
 }
 
 export const authConfig = {
+  /**
+   * Trust the Host header.
+   *
+   * Auth.js auto-trusts it in development but refuses in production unless
+   * told to, which otherwise makes every sign-in fail with UntrustedHost the
+   * moment the app is built and started for real.
+   *
+   * Safe here because this is self-hosted on infrastructure the revenue
+   * department controls, reached over a known host — the same premise as the
+   * data-sovereignty position in docs/03_Security_Access.md. Behind an
+   * untrusted proxy this should instead be a pinned AUTH_URL.
+   */
+  trustHost: true,
+
   pages: {
     signIn: "/login",
   },

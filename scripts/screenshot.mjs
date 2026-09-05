@@ -17,8 +17,9 @@ const BROWSER = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser";
 const BASE = "http://localhost:3000";
 const PORT = 9333;
 
-const [, , targetPath, outFile, email = "verifier@revenue.gov.in", password = "Verify@12345"] =
-  process.argv;
+const [, , targetPath, outFile, email = "verifier@revenue.gov.in", password = "Verify@12345",
+       vw = "1440", vh = "900"] = process.argv;
+const WIDTH = Number(vw), HEIGHT = Number(vh);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -77,7 +78,7 @@ const browser = spawn(BROWSER, [
   "--no-default-browser-check",
   "--hide-scrollbars",
   "--force-device-scale-factor=2",
-  "--window-size=1440,900",
+  `--window-size=${WIDTH},${HEIGHT}`,
   "about:blank",
 ], { stdio: "ignore" });
 
@@ -99,7 +100,7 @@ try {
   await cdp(ws, "Network.enable", {}, id);
   await cdp(ws, "Page.enable", {}, id);
   await cdp(ws, "Emulation.setDeviceMetricsOverride",
-    { width: 1440, height: 900, deviceScaleFactor: 2, mobile: false }, id);
+    { width: WIDTH, height: HEIGHT, deviceScaleFactor: 2, mobile: WIDTH < 500 }, id);
   await cdp(ws, "Network.setCookie",
     { name: cookie.name, value: cookie.value, domain: "localhost", path: "/", httpOnly: true }, id);
 

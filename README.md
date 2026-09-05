@@ -73,7 +73,7 @@ Internal government revenue staff — not the public.
 | ORM | Prisma | One schema file is the single source of truth for the data model |
 | UI | Tailwind CSS v4 + shadcn/ui | Accessible prebuilt primitives instead of hand-rolled components |
 | Auth | Auth.js (NextAuth v5), credentials provider | Email/password with a `role` claim on the session |
-| OCR | Stubbed HTTP interface | Engine deliberately undecided — see below |
+| OCR | Tesseract 5 (Hindi + English), self-hosted in Docker | Runs on your own hardware — see below |
 
 ### Data model
 
@@ -88,17 +88,41 @@ Five tables, all linked by foreign keys:
   pointer to the record it duplicates
 - **AuditLog** — actor, action, before/after snapshots, timestamp
 
-### OCR is a seam, not an engine
+### OCR: real, and running on your own hardware
 
-All OCR access goes through a single function in `src/lib/ocr.ts`, which calls an
-external service over HTTP. The repository ships a **mock** that returns
-realistic canned Devanagari text, so the whole application runs end to end
-without a real engine attached.
+Text recognition runs in `ocr-service/` — a small FastAPI service using
+**Tesseract 5** with the Hindi (Devanagari) and English language models,
+started alongside the database by `docker compose up -d`.
 
-When the team settles on an engine, they stand up a service exposing
-`POST /extract` that returns `{ rawText, language, blocks[] }` and point
-`OCR_SERVICE_URL` at it. Nothing else in the codebase changes. This is
-deliberate: the engine choice should not be baked into the application.
+It never touches the network. The language models are installed into the image
+at build time and documents are read from a read-only mount of the application's
+own upload directory, so **no document image is ever sent to a third-party API**
+and the service works on a disconnected machine. That is what makes the
+data-sovereignty position real rather than aspirational.
+
+How a page is read:
+
+1. The record is rasterised — SVG via cairo, legacy PDF via poppler at 300 dpi.
+2. Contrast is stretched and strokes sharpened. Aged registers photograph with
+   no true black or white; one sample page spans only grey 56–191 untouched.
+3. Two recognition passes run over the page — Devanagari, and a digit-restricted
+   Latin pass for survey, khasra and khata numbers — each at two page
+   segmentation modes.
+4. Words are merged into lines by position, so a label and its value rejoin.
+   A line's confidence is the **lowest** of its words: printed labels always
+   read cleanly, and averaging would hide uncertainty about the written value.
+
+Measured on three sample records: **20 of 27 fields exactly correct, 25 of 27
+populated.** The residual errors are Devanagari matra reordering by the engine
+(`मलिहाबाद` read as `मलहिबाद`). Every incorrect field so far has scored below
+the confidence threshold, so it is flagged and reaches a human — which is what
+the verification workflow exists for.
+
+The application only ever calls `runOcr()` in `src/lib/ocr.ts`, so a department
+can substitute its own engine by exposing `POST /extract` returning
+`{ rawText, language, blocks[] }` and pointing `OCR_SERVICE_URL` at it. Setting
+`OCR_SERVICE_URL=mock` falls back to canned data for development without the
+container running.
 
 ### Security and access
 
@@ -138,7 +162,8 @@ natively), npm, and Docker Desktop.
 ```bash
 npm install
 cp .env.example .env          # then fill in the values below
-docker compose up -d          # local Postgres on :5432
+docker compose up -d          # Postgres on :5432, OCR service on :8001
+                              # first run builds the OCR image (~3 min)
 npx prisma migrate dev --name init
 npx prisma db seed
 npm run dev                   # http://localhost:3000
@@ -169,7 +194,7 @@ known clean state with the planted errors intact.
 |---|---|
 | `DATABASE_URL` | Postgres connection string (matches `docker-compose.yml`) |
 | `AUTH_SECRET` | Auth.js session secret — generate per environment, never commit |
-| `OCR_SERVICE_URL` | `mock` until a real engine is wired in |
+| `OCR_SERVICE_URL` | `http://localhost:8001` (the bundled OCR service), or `mock` for offline development |
 | `UPLOAD_DIR` | Local directory for uploaded scans (`./uploads`) |
 
 `.env` is gitignored; `.env.example` documents every key with placeholder values.

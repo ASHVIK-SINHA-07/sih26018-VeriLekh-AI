@@ -11,5 +11,19 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  # Self-hosted OCR. Runs on this machine, reads documents from a read-only
+  # mount of the upload directory, and has its models baked in — so no
+  # document image is ever sent to a third-party service, and the container
+  # needs no network at runtime.
+  ocr:
+    build: ./ocr-service
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    environment:
+      UPLOAD_ROOT: /data
+    volumes:
+      - ./uploads:/data/uploads:ro
+
 volumes:
   pgdata:

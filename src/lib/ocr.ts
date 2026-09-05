@@ -164,21 +164,42 @@ function mockOcr(imagePath: string): OcrResult {
  * With OCR_SERVICE_URL unset or "mock", returns canned data. Otherwise POSTs
  * `{ imagePath }` to the configured service and expects an OcrResult back.
  */
+/**
+ * Recognition on CPU takes seconds, not milliseconds, and a large scan can
+ * take longer. Long enough not to abort real work; short enough that a dead
+ * service fails the request instead of hanging the upload screen.
+ */
+const OCR_TIMEOUT_MS = 120_000;
+
 export async function runOcr(imagePath: string): Promise<OcrResult> {
   if (isMockOcr()) {
     return mockOcr(imagePath);
   }
 
   const endpoint = new URL("/extract", ocrServiceUrl()).toString();
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ imagePath }),
-  });
+
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imagePath }),
+      signal: AbortSignal.timeout(OCR_TIMEOUT_MS),
+    });
+  } catch (error) {
+    // Distinguish "engine is down" from "engine rejected this page" — the
+    // first is an operator problem, the second is a document problem.
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Could not reach the OCR service at ${ocrServiceUrl()} (${reason}). ` +
+        "Check that it is running: docker compose ps ocr",
+    );
+  }
 
   if (!response.ok) {
+    const detail = await response.text().catch(() => "");
     throw new Error(
-      `OCR service responded ${response.status} ${response.statusText}`,
+      `OCR service responded ${response.status} ${response.statusText}${detail ? ` — ${detail}` : ""}`,
     );
   }
 
@@ -192,4 +213,16 @@ export async function runOcr(imagePath: string): Promise<OcrResult> {
     language: result.language ?? "unknown",
     blocks: result.blocks,
   };
+}
+
+/** True when the configured engine answers. Used by the health check script. */
+export async function ocrServiceReachable(): Promise<boolean> {
+  if (isMockOcr()) return true;
+  try {
+    const endpoint = new URL("/health", ocrServiceUrl()).toString();
+    const response = await fetch(endpoint, { signal: AbortSignal.timeout(5000) });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }

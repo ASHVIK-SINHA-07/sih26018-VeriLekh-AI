@@ -1,4 +1,7 @@
-# SIH26018 — Land record digitization & validation system
+# VeriLekh-AI
+
+**Intelligent land record digitization and validation system**
+Smart India Hackathon 2026 · Problem Statement SIH26018 · Team Terra-Byte
 
 An AI-assisted **back-office pipeline** that turns India's legacy paper land
 records into clean, structured, validated digital records — with a human in the
@@ -10,7 +13,6 @@ loop and a full audit trail.
 > This system is the missing step *before* a record can appear on those portals.
 > It feeds into NGDRS/DILRMP; it does not compete with them.
 
-Built for Smart India Hackathon problem statement SIH26018.
 
 ---
 
@@ -184,39 +186,52 @@ ownership records must never be loaded into this system.
 
 ---
 
-## Getting started
+## Running it
 
-**Prerequisites** — Node.js 22.6 or later (the seed script runs TypeScript
-natively), npm, and Docker Desktop.
+Two audiences read this section. **Revenue staff never do any of it** — they are
+given a web address and a login by their IT department, and that is the whole of
+their experience. Everything below is for whoever installs the system once.
+
+### Deploying it (IT staff — one machine, one command)
+
+The database and the text-recognition engine both ship as containers, so a
+department needs Docker and nothing else installed:
+
+```bash
+git clone https://github.com/ASHVIK-SINHA-07/sih26018-VeriLekh-AI.git
+cd sih26018-VeriLekh-AI
+cp .env.example .env          # set DATABASE_URL and AUTH_SECRET
+docker compose up -d          # Postgres and the OCR service
+```
+
+Generate the session secret with `openssl rand -base64 32`. The first start
+builds the OCR image (about three minutes); after that it starts in seconds and
+needs no internet connection at all.
+
+### Running the application (developers)
 
 ```bash
 npm install
-cp .env.example .env          # then fill in the values below
-docker compose up -d          # Postgres on :5432, OCR service on :8001
-                              # first run builds the OCR image (~3 min)
-npx prisma migrate dev --name init
-npx prisma db seed
-npm run dev                   # http://localhost:3000
+npx prisma migrate dev --name init    # create the schema
+npx prisma db seed                    # optional — synthetic demo data
+npm run dev                           # http://localhost:3000
 ```
 
-Generate the auth secret with `openssl rand -base64 32`.
+Node.js 22.6 or later is required; the seed script runs TypeScript natively.
 
-### Seeded accounts
+### Demo data
 
-`npx prisma db seed` loads three role accounts and 18 synthetic documents —
-including four deliberately planted problems (a duplicate parcel, a mismatched
-owner, a missing field, and a faded scan with low-confidence fields) so the
+`npx prisma db seed` loads three role accounts and twenty synthetic records,
+including four deliberately planted problems — a duplicate parcel, a mismatched
+owner, a missing field, and a faded scan with low-confidence fields — so the
 validation engine has something real to catch.
 
-| Role | Email | Password |
-|---|---|---|
-| Admin | `admin@revenue.gov.in` | `Admin@12345` |
-| Verifier | `verifier@revenue.gov.in` | `Verify@12345` |
-| Viewer | `viewer@revenue.gov.in` | `Viewer@12345` |
+**The seed prints its account credentials to your terminal.** They are
+development-only fixtures and are deliberately not published here. Never run the
+seed against an internet-facing deployment.
 
-Local development accounts only. Admin and Verifier land on `/upload`, Viewer on
-`/dashboard`. The seed is idempotent — re-run it to return the database to a
-known clean state with the planted errors intact.
+Every record is synthetic: realistic in format, invented in content. No real
+citizen's land record exists anywhere in this repository.
 
 ### Environment variables
 
@@ -245,51 +260,72 @@ known clean state with the planted errors intact.
 │   │                       validation, ULPIN generator
 │   ├── types/              shared types matching the API contract
 │   └── middleware.ts       route protection
-├── docker-compose.yml      local Postgres
-└── uploads/                uploaded scans (gitignored)
+├── ocr-service/            self-hosted OCR (Tesseract, FastAPI, Docker)
+├── scripts/                development tooling
+├── assets/                 screenshots used in this README
+├── docker-compose.yml      Postgres + OCR service
+└── uploads/                stored scans (gitignored)
 ```
-
-### A note on `docs/`
-
-The working tree also contains a `docs/` directory that is **intentionally not
-committed**. It holds the internal build specification — the product
-requirements, technical architecture, security model, frontend screen specs, a
-ticket-by-ticket build plan and a pre-demo checklist. Those documents drive
-development but are planning material rather than part of the deliverable, so
-they are kept local. Everything needed to understand, run and extend this
-codebase is in this README, in `prisma/schema.prisma`, and in the type
-definitions under `src/types/`.
 
 ---
 
-## Build status
+## Project status
 
-The system is built ticket by ticket in a fixed order.
+Measured against the eleven capabilities the problem statement asks for.
 
-| | Ticket | Status |
-|---|---|---|
-| T0 | Project scaffold | ✅ |
-| T1 | Local database and Prisma schema | ✅ |
-| T2 | Auth, roles and route protection | ✅ |
-| T3 | Synthetic seed data with planted errors | ✅ |
-| T4 | OCR interface, extraction, validation, ULPIN | ✅ |
-| T5 | Document APIs | ✅ |
-| T6 | Upload screen | ✅ |
-| T7 | Verification screen | ✅ |
-| T8 | Dashboard | ✅ |
-| T9 | Simulated integration endpoint | ✅ |
-| T10 | Polish and audit view | ✅ |
+### Working today
 
-## Roadmap
+```
+Document ingestion — images and legacy PDFs      ██████████  complete
+Self-hosted OCR, no third-party service          ██████████  complete
+Field extraction into structured records         ██████████  complete
+Per-field confidence scoring                     ██████████  complete
+Validation — missing, range, duplicate, conflict ██████████  complete
+Human verification workflow                      ██████████  complete
+Append-only audit trail                          ██████████  complete
+Role-based access control                        ██████████  complete
+Dashboards and reporting                         ██████████  complete
+REST API for onward integration                  ██████████  complete
+```
 
-Deliberately out of scope for this build, and designed for rather than
-implemented:
+Extraction accuracy, measured across seventeen test documents: **95% of fields
+populated, 66% exactly correct**, and **84% of the remaining errors are
+automatically flagged** for human review rather than committed silently. The
+fields that legally identify a parcel do best — khata number 100%, khasra 94%,
+district 94%, survey number 88%, plot area 88%. Devanagari name fields are
+weaker and are where the confidence gate earns its place.
 
-- Live integration with production LRMS / DILRMP / NGDRS / GIS systems
-  (currently simulated behind a clearly labelled mock endpoint)
-- A self-improving model — corrections are logged as future retraining data
-  rather than fed back automatically
-- Full multilingual OCR across all 22 scheduled languages; the architecture is
-  extensible, and one script is supported deeply
-- SSO and government identity federation, rate limiting, field-level encryption
-  at rest, and multi-tenant isolation across states
+### Partially built
+
+```
+Language coverage — Hindi/Devanagari only        ████░░░░░░  one of many
+Registry integration — contract built, simulated ████░░░░░░  no live endpoint
+Mobile and tablet layouts                        ██░░░░░░░░  desktop only
+```
+
+The OCR engine is reached through a single swappable interface, so adding a
+language is a configuration change rather than a rewrite. The integration
+endpoint returns correctly-shaped data from real records but is clearly labelled
+as simulated and contacts no government system.
+
+### Not started — the roadmap
+
+```
+Handwriting recognition                          ░░░░░░░░░░  planned
+Learning from corrections                        ░░░░░░░░░░  data captured
+Cadastral maps and GIS geometry                  ░░░░░░░░░░  planned
+Encryption at rest, SSO, multi-tenancy           ░░░░░░░░░░  planned
+```
+
+Two of these are closer than they look. **Handwriting** needs a different
+recognition model behind the existing interface, not new architecture — the
+current engine reads printed Devanagari well and routes anything it cannot read
+confidently to a human, so handwritten annotations are flagged rather than
+mis-transcribed. **Learning from corrections** already has its groundwork: every
+correction an officer makes is stored with its before and after value, which is
+exactly the labelled data a future model would train on. Nothing consumes it yet.
+
+Cadastral map digitization is the largest gap and the most valuable next step —
+official figures put national map digitization at roughly 68% complete against
+95% for textual records, so the geometry side of the backlog is where the
+remaining work actually is.

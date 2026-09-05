@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+.env
+.env.local
+uploads
+.screenshots
+docs
+CLAUDE.md
+*.log

@@ -188,36 +188,49 @@ ownership records must never be loaded into this system.
 
 ## Running it
 
-Two audiences read this section. **Revenue staff never do any of it** — they are
-given a web address and a login by their IT department, and that is the whole of
-their experience. Everything below is for whoever installs the system once.
+**Revenue staff never do any of this.** They are given a web address and a login
+by their IT department, and that is the whole of their experience — the same as
+any departmental system they already use. Everything below is for whoever
+installs it, once.
 
-### Deploying it (IT staff — one machine, one command)
+### Installing it (one machine, one command)
 
-The database and the text-recognition engine both ship as containers, so a
-department needs Docker and nothing else installed:
+Docker is the only prerequisite. The database, the text-recognition engine and
+the application all ship as containers — there is no Node, Python, Postgres or
+Tesseract to install on the server, and no versions to match.
 
 ```bash
 git clone https://github.com/ASHVIK-SINHA-07/sih26018-VeriLekh-AI.git
 cd sih26018-VeriLekh-AI
-cp .env.example .env          # set DATABASE_URL and AUTH_SECRET
-docker compose up -d          # Postgres and the OCR service
+cp .env.example .env
+echo "AUTH_SECRET=\"$(openssl rand -base64 32)\"" >> .env
+
+docker compose up -d
 ```
 
-Generate the session secret with `openssl rand -base64 32`. The first start
-builds the OCR image (about three minutes); after that it starts in seconds and
-needs no internet connection at all.
+That is the whole installation. The application is then at
+`http://<server>:3000`, and staff need only a browser and a login.
 
-### Running the application (developers)
+Database migrations run automatically each time the application container
+starts, so upgrading is `git pull && docker compose up -d --build`. The first
+build takes a few minutes while the OCR image is assembled; after that the
+system starts in seconds and **needs no internet connection at all** — the
+language models are inside the image.
+
+### Running it for development
+
+If you are changing the code rather than deploying it:
 
 ```bash
 npm install
-npx prisma migrate dev --name init    # create the schema
-npx prisma db seed                    # optional — synthetic demo data
-npm run dev                           # http://localhost:3000
+docker compose up -d db ocr          # just the supporting services
+npx prisma migrate dev --name init
+npx prisma db seed                   # optional — synthetic demo data
+npm run dev                          # http://localhost:3000
 ```
 
-Node.js 22.6 or later is required; the seed script runs TypeScript natively.
+Node.js 22.6 or later is required for development; the seed script runs
+TypeScript natively.
 
 ### Demo data
 
@@ -263,7 +276,8 @@ citizen's land record exists anywhere in this repository.
 ├── ocr-service/            self-hosted OCR (Tesseract, FastAPI, Docker)
 ├── scripts/                development tooling
 ├── assets/                 screenshots used in this README
-├── docker-compose.yml      Postgres + OCR service
+├── Dockerfile              the web application container
+├── docker-compose.yml      database + OCR + application
 └── uploads/                stored scans (gitignored)
 ```
 

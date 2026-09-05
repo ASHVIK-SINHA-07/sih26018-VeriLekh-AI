@@ -1,20 +1,31 @@
+# The whole system: database, text recognition, and the application.
+#
+#   docker compose up -d
+#
+# That is the entire installation. Nothing else needs to be present on the
+# machine except Docker itself — no Node, no Python, no Tesseract. Nothing in
+# here reaches the public internet once the images are built.
+
 services:
   db:
     image: postgres:16
     restart: unless-stopped
     environment:
       POSTGRES_USER: sih
-      POSTGRES_PASSWORD: sih_local_dev
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sih_local_dev}
       POSTGRES_DB: landrecords
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sih -d landrecords"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
-  # Self-hosted OCR. Runs on this machine, reads documents from a read-only
-  # mount of the upload directory, and has its models baked in — so no
-  # document image is ever sent to a third-party service, and the container
-  # needs no network at runtime.
+  # Self-hosted OCR. Language models are installed into the image at build
+  # time, so this container never needs network access at runtime.
   ocr:
     build: ./ocr-service
     restart: unless-stopped
@@ -24,6 +35,36 @@ services:
       UPLOAD_ROOT: /data
     volumes:
       - ./uploads:/data/uploads:ro
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Inside the compose network the other services are reached by name,
+      # not localhost — these override anything in .env.
+      DATABASE_URL: postgresql://sih:${POSTGRES_PASSWORD:-sih_local_dev}@db:5432/landrecords
+      OCR_SERVICE_URL: http://ocr:8000
+      UPLOAD_DIR: ./uploads
+      AUTH_SECRET: "${AUTH_SECRET:?set AUTH_SECRET in .env - generate one with openssl rand -base64 32}"
+      AUTH_TRUST_HOST: "true"
+      NODE_ENV: production
+    volumes:
+      # Scans are written here by the app and read by the OCR service. Bound to
+      # the host so a department can back them up with its existing tooling.
+      - ./uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      ocr:
+        condition: service_started
 
 volumes:
   pgdata:

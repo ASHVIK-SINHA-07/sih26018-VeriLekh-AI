@@ -56,7 +56,7 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
     <div className="border border-hairline bg-panel">
       {/* filter bar */}
       <div className="flex flex-wrap items-center gap-3 border-b border-hairline bg-panel-alt px-4 py-2.5">
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
           <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
             type="search"
@@ -64,7 +64,7 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search document, village or district"
             aria-label="Search the queue"
-            className={`${control} w-72 pl-7`}
+            className={`${control} w-full pl-7 sm:w-72`}
           />
         </div>
 
@@ -119,11 +119,11 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
             <thead>
               <tr className="border-b border-hairline bg-panel-alt">
                 <th className="label-cap px-4 py-2 text-left">Document</th>
-                <th className="label-cap px-3 py-2 text-left">Village</th>
-                <th className="label-cap px-3 py-2 text-left">District</th>
+                <th className="label-cap hidden px-3 py-2 text-left md:table-cell">Village</th>
+                <th className="label-cap hidden px-3 py-2 text-left sm:table-cell">District</th>
                 <th className="label-cap px-3 py-2 text-left">Status</th>
-                <th className="label-cap px-3 py-2 text-left">Finding</th>
-                <th className="label-cap px-4 py-2 text-right">Updated</th>
+                <th className="label-cap hidden px-3 py-2 text-left lg:table-cell">Finding</th>
+                <th className="label-cap hidden px-4 py-2 text-right sm:table-cell">Updated</th>
               </tr>
             </thead>
             <tbody>
@@ -137,16 +137,16 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
                       {row.filename}
                     </Link>
                   </td>
-                  <td className="px-3 py-2.5 text-ink-2">{row.village ?? "—"}</td>
-                  <td className="px-3 py-2.5 text-ink-2">{row.district ?? "—"}</td>
+                  <td className="hidden px-3 py-2.5 text-ink-2 md:table-cell">{row.village ?? "—"}</td>
+                  <td className="hidden px-3 py-2.5 text-ink-2 sm:table-cell">{row.district ?? "—"}</td>
                   <td className="px-3 py-2.5"><StatusBadge status={row.status} /></td>
-                  <td className="max-w-md truncate px-3 py-2.5 text-[12.5px] text-muted-foreground">
+                  <td className="hidden max-w-md truncate px-3 py-2.5 text-[12.5px] text-muted-foreground lg:table-cell">
                     {row.topIssue ?? "—"}
                     {row.issueCount > 1 ? (
                       <span className="text-muted-foreground"> +{row.issueCount - 1} more</span>
                     ) : null}
                   </td>
-                  <td className="px-4 py-2.5 text-right text-[12px] text-muted-foreground tabular-nums">
+                  <td className="hidden px-4 py-2.5 text-right text-[12px] text-muted-foreground tabular-nums sm:table-cell">
                     {asRelativeTime(row.updatedAt)}
                   </td>
                 </tr>

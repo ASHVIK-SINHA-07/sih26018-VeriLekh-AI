@@ -104,7 +104,7 @@ export default async function VerifyDetailPage({
       validation={validation}
       duplicateOf={duplicateOf}
     />
-    <div className="px-7 pb-7"><AuditTrail entries={auditEntries} /></div>
+    <div className="px-4 pb-4 sm:px-7 sm:pb-7"><AuditTrail entries={auditEntries} /></div>
     </div>
   );
 }

@@ -54,7 +54,7 @@ export default async function VerifyQueuePage() {
             : `${rows.length} record${rows.length === 1 ? "" : "s"} awaiting review — ${flagged} with problems found.`
         }
       />
-      <div className="p-7">
+      <div className="p-4 sm:p-7">
         <QueueTable rows={rows} />
       </div>
     </>

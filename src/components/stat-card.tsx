@@ -26,7 +26,7 @@ export function StatCard({
     tone === "flagged" ? "text-status-flagged" : "text-navy";
 
   return (
-    <div className="relative flex-1 px-6 py-5">
+    <div className="relative px-5 py-4 sm:px-6 sm:py-5">
       <span className={`absolute top-5 bottom-5 left-0 w-[3px] ${accent}`} />
       <p className="label-cap">{label}</p>
       <p className={`mt-2 font-serif text-[2.5rem] leading-none tabular-nums ${figure}`}>

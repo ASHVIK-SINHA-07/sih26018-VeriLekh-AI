@@ -51,11 +51,11 @@ export function ActivityTable({
         <tr className="border-b border-hairline bg-panel-alt">
           <th className="w-8" />
           <th className="label-cap px-3 py-2 text-left">Document</th>
-          <th className="label-cap px-3 py-2 text-left">Village</th>
-          <th className="label-cap px-3 py-2 text-left">District</th>
-          <th className="label-cap px-3 py-2 text-left">ULPIN</th>
+          <th className="label-cap hidden px-3 py-2 text-left md:table-cell">Village</th>
+          <th className="label-cap hidden px-3 py-2 text-left sm:table-cell">District</th>
+          <th className="label-cap hidden px-3 py-2 text-left lg:table-cell">ULPIN</th>
           <th className="label-cap px-3 py-2 text-left">Status</th>
-          <th className="label-cap px-3 py-2 text-right">Updated</th>
+          <th className="label-cap hidden px-3 py-2 text-right sm:table-cell">Updated</th>
         </tr>
       </thead>
       <tbody>
@@ -75,15 +75,15 @@ export function ActivityTable({
                   />
                 </td>
                 <td className="px-3 py-2.5 font-medium">{row.filename}</td>
-                <td className="px-3 py-2.5 text-ink-2">{row.village ?? "—"}</td>
-                <td className="px-3 py-2.5 text-ink-2">{row.district ?? "—"}</td>
-                <td className="px-3 py-2.5 font-mono text-[11.5px] text-muted-foreground tabular-nums">
+                <td className="hidden px-3 py-2.5 text-ink-2 md:table-cell">{row.village ?? "—"}</td>
+                <td className="hidden px-3 py-2.5 text-ink-2 sm:table-cell">{row.district ?? "—"}</td>
+                <td className="hidden px-3 py-2.5 font-mono text-[11.5px] text-muted-foreground tabular-nums lg:table-cell">
                   {row.ulpin ?? "—"}
                 </td>
                 <td className="px-3 py-2.5">
                   <StatusBadge status={row.status} />
                 </td>
-                <td className="px-3 py-2.5 text-right text-[12px] text-muted-foreground tabular-nums">
+                <td className="hidden px-3 py-2.5 text-right text-[12px] text-muted-foreground tabular-nums sm:table-cell">
                   {asRelativeTime(row.updatedAt)}
                 </td>
               </tr>
@@ -92,7 +92,7 @@ export function ActivityTable({
                 <tr className="border-b border-hairline bg-panel-alt">
                   <td colSpan={7} className="px-3 pt-1 pb-4">
                     {row.fields ? (
-                      <div className="grid gap-x-6 gap-y-3 pl-8 sm:grid-cols-3 lg:grid-cols-5">
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-3 pl-0 sm:grid-cols-3 sm:pl-8 lg:grid-cols-5">
                         {EXTRACTED_FIELD_NAMES.map((field) => {
                           const score = row.confidence[field];
                           const low =

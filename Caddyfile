@@ -1,0 +1,47 @@
+# TLS termination for the land record system.
+#
+# SITE_ADDRESS controls what this serves and how it gets a certificate:
+#
+#   localhost                      (default) Caddy issues its own certificate
+#                                  from a local CA — right for a closed
+#                                  department network with no public DNS.
+#   landrecords.revenue.gov.in     a public hostname — Caddy obtains and renews
+#                                  a real certificate automatically.
+#
+# Set it in .env. Nothing else needs changing.
+
+{
+	# Where certificate-expiry notices go. Harmless if unset on an internal
+	# network, where no public certificate is ever issued.
+	email {$ADMIN_EMAIL:admin@localhost}
+}
+
+{$SITE_ADDRESS:localhost} {
+	# Serve a certificate we issue ourselves whenever SITE_ADDRESS is not a
+	# public domain — localhost, a bare IP, or an internal hostname with no
+	# public DNS. Comment this line out for a public hostname and Caddy will
+	# obtain a real certificate instead.
+	tls internal
+
+	encode gzip
+
+	# The application is not published to the network itself — only this
+	# proxy is. Everything reaches it over the internal container network.
+	reverse_proxy app:3000
+
+	header {
+		# Force HTTPS for a year once a browser has seen this site.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		# A land record is never framed by another site.
+		X-Frame-Options DENY
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		# Don't advertise the server software.
+		-Server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

@@ -14,8 +14,12 @@ services:
       POSTGRES_USER: sih
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sih_local_dev}
       POSTGRES_DB: landrecords
+    # Bound to loopback only. The application reaches the database over the
+    # internal compose network, so nothing outside this machine ever needs a
+    # route to Postgres — publishing it to 0.0.0.0 would expose the database
+    # to every host on the department LAN.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -29,8 +33,10 @@ services:
   ocr:
     build: ./ocr-service
     restart: unless-stopped
+    # Loopback only, for the same reason as the database: the application
+    # calls this over the internal network at http://ocr:8000.
     ports:
-      - "8001:8000"
+      - "127.0.0.1:8001:8000"
     environment:
       UPLOAD_ROOT: /data
     volumes:
@@ -45,8 +51,10 @@ services:
   app:
     build: .
     restart: unless-stopped
+    # Loopback only. Staff reach the system through the proxy on 443; this
+    # mapping exists so a developer can hit the app directly on the server.
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       # Inside the compose network the other services are reached by name,
       # not localhost — these override anything in .env.
@@ -66,5 +74,26 @@ services:
       ocr:
         condition: service_started
 
+  # TLS termination and the only service exposed to the network.
+  # Obtains and renews certificates automatically — a real one for a public
+  # hostname, its own for a closed department network.
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    depends_on:
+      - app
+
 volumes:
   pgdata:
+  caddydata:
+  caddyconfig:

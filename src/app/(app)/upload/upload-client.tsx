@@ -197,9 +197,9 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
             {queue.map((item) => (
               <li
                 key={item.key}
-                className="grid grid-cols-[1fr_18.5rem_4.5rem] items-center gap-3 px-4 py-2.5 text-[13px]"
+                className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-[13px] sm:grid sm:grid-cols-[1fr_18.5rem_4.5rem]"
               >
-                <span className="min-w-0 truncate font-medium">{item.filename}</span>
+                <span className="w-full min-w-0 truncate font-medium sm:w-auto">{item.filename}</span>
 
                 <span>
                   {item.stage === "done" && item.status ? (
@@ -246,9 +246,9 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
               return (
                 <li
                   key={document.id}
-                  className="grid grid-cols-[1fr_9rem_10.5rem_7rem_4.5rem] items-center gap-3 px-4 py-2.5 text-[13px] transition-colors hover:bg-panel-alt/70"
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-[13px] transition-colors hover:bg-panel-alt/70 sm:grid sm:grid-cols-[1fr_9rem_10.5rem_7rem_4.5rem]"
                 >
-                  <span className="min-w-0 truncate font-medium">
+                  <span className="w-full min-w-0 truncate font-medium sm:w-auto">
                     {document.filename}
                   </span>
                   <span className="truncate text-ink-2">

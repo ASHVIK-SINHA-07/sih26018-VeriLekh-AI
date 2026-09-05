@@ -75,9 +75,9 @@ export default async function DashboardPage({
         <DistrictFilter districts={stats.byDistrict} />
       </ScreenHeader>
 
-      <div className="space-y-5 p-7">
+      <div className="space-y-5 p-4 sm:p-7">
         {/* KPI strip */}
-        <div className="flex flex-wrap divide-x divide-hairline border border-hairline bg-panel">
+        <div className="grid grid-cols-1 divide-y divide-hairline border border-hairline bg-panel sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 sm:[&>*:nth-child(n+2)]:border-l sm:[&>*]:border-hairline lg:divide-x">
           <StatCard
             label="Documents processed"
             value={asCount(stats.totalProcessed)}

@@ -41,7 +41,7 @@ export default async function UploadPage() {
         title="Upload records"
         subtitle="Each record is read, extracted and checked automatically, then queued for review."
       />
-      <div className="p-7">
+      <div className="p-4 sm:p-7">
         <UploadClient recent={recent} />
       </div>
     </>

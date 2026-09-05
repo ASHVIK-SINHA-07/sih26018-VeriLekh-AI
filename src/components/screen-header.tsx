@@ -13,7 +13,7 @@ export function ScreenHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <header className="border-b border-hairline bg-panel px-7 py-5">
+    <header className="border-b border-hairline bg-panel px-4 py-4 sm:px-7 sm:py-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1>{title}</h1>

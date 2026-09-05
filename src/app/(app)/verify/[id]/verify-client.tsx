@@ -100,7 +100,7 @@ export function VerifyClient(props: Props) {
   return (
     <section>
       {/* ------------------------------------------------------------ header */}
-      <div className="border-b border-hairline bg-panel px-7 py-4">
+      <div className="border-b border-hairline bg-panel px-4 py-4 sm:px-7">
         <Link
           href="/verify"
           className="text-[12.5px] text-navy hover:underline"
@@ -118,7 +118,7 @@ export function VerifyClient(props: Props) {
         </div>
       </div>
 
-      <div className="space-y-4 px-7 pt-5">
+      <div className="space-y-4 px-4 pt-4 sm:px-7 sm:pt-5">
       {/* -------------------------------------------------- validation banner */}
       {props.validation && props.validation.issues.length > 0 ? (
         <div
@@ -160,7 +160,7 @@ export function VerifyClient(props: Props) {
       </div>
 
       {/* ------------------------------------------------------ two columns */}
-      <div className="grid gap-5 p-7 pt-4 xl:grid-cols-2">
+      <div className="grid gap-5 p-4 pt-4 sm:p-7 sm:pt-4 xl:grid-cols-2">
         {/* left: the scan */}
         <Panel title="Scanned record" meta="Scroll or click to zoom · drag to move">
           <div>

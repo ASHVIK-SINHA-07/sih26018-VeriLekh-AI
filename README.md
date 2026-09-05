@@ -208,8 +208,20 @@ echo "AUTH_SECRET=\"$(openssl rand -base64 32)\"" >> .env
 docker compose up -d
 ```
 
-That is the whole installation. The application is then at
-`http://<server>:3000`, and staff need only a browser and a login.
+That is the whole installation. Staff then open **https://** the address you
+configured, and need only a browser and a login.
+
+Set `SITE_ADDRESS` in `.env` to the hostname staff will actually type. A public
+hostname (`landrecords.revenue.gov.in`) makes the proxy obtain and renew a real
+certificate automatically; the default, `localhost`, makes it issue its own —
+which is what a closed department network with no public DNS needs. Plain HTTP
+is redirected to HTTPS, and HSTS, `X-Frame-Options`, `nosniff` and a referrer
+policy are applied at the edge.
+
+Only the proxy is reachable from the network. The application, the database and
+the OCR service are bound to loopback and talk to each other over an internal
+container network, so nothing on the department LAN can reach the database
+directly.
 
 Database migrations run automatically each time the application container
 starts, so upgrading is `git pull && docker compose up -d --build`. The first
@@ -254,6 +266,8 @@ citizen's land record exists anywhere in this repository.
 | `AUTH_SECRET` | Auth.js session secret — generate per environment, never commit |
 | `OCR_SERVICE_URL` | `http://localhost:8001` (the bundled OCR service), or `mock` for offline development |
 | `UPLOAD_DIR` | Local directory for uploaded scans (`./uploads`) |
+| `SITE_ADDRESS` | Hostname the system is served on; drives certificate issuance |
+| `ADMIN_EMAIL` | Certificate-expiry notices, for a public hostname |
 
 `.env` is gitignored; `.env.example` documents every key with placeholder values.
 
@@ -276,8 +290,9 @@ citizen's land record exists anywhere in this repository.
 ├── ocr-service/            self-hosted OCR (Tesseract, FastAPI, Docker)
 ├── scripts/                development tooling
 ├── assets/                 screenshots used in this README
+├── Caddyfile               TLS termination and security headers
 ├── Dockerfile              the web application container
-├── docker-compose.yml      database + OCR + application
+├── docker-compose.yml      database + OCR + application + proxy
 └── uploads/                stored scans (gitignored)
 ```
 
@@ -300,6 +315,8 @@ Append-only audit trail                          ██████████ 
 Role-based access control                        ██████████  complete
 Dashboards and reporting                         ██████████  complete
 REST API for onward integration                  ██████████  complete
+Responsive layout — phone, tablet, desktop       ██████████  complete
+HTTPS with automatic certificates                ██████████  complete
 ```
 
 Extraction accuracy, measured across seventeen test documents: **95% of fields
@@ -314,7 +331,6 @@ weaker and are where the confidence gate earns its place.
 ```
 Language coverage — Hindi/Devanagari only        ████░░░░░░  one of many
 Registry integration — contract built, simulated ████░░░░░░  no live endpoint
-Mobile and tablet layouts                        ██░░░░░░░░  desktop only
 ```
 
 The OCR engine is reached through a single swappable interface, so adding a

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { SideRail } from "@/components/side-rail";
+import { MobileRail } from "@/components/mobile-rail";
 
 /**
  * Shell for every signed-in screen: fixed navigation rail, scrolling work
@@ -16,8 +17,15 @@ export default async function AppLayout({
   if (!session?.user) redirect("/login");
 
   return (
-    <div className="flex min-h-screen">
-      <SideRail name={session.user.name ?? "Unknown user"} role={session.user.role} />
+    <div className="flex min-h-screen flex-col lg:flex-row">
+      <MobileRail>
+        <SideRail name={session.user.name ?? "Unknown user"} role={session.user.role} />
+      </MobileRail>
+
+      <div className="hidden lg:flex">
+        <SideRail name={session.user.name ?? "Unknown user"} role={session.user.role} />
+      </div>
+
       <main className="min-w-0 flex-1">{children}</main>
     </div>
   );

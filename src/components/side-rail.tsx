@@ -28,7 +28,7 @@ export function SideRail({ name, role }: { name: string; role: Role }) {
     .toUpperCase();
 
   return (
-    <aside className="flex w-[232px] shrink-0 flex-col bg-rail text-rail-ink">
+    <aside className="flex w-[248px] shrink-0 flex-col bg-rail text-rail-ink lg:w-[232px]">
       <div className="border-b border-white/10 px-5 py-5">
         <p className="font-serif text-[17px] leading-tight">Land record</p>
         <p className="font-serif text-[17px] leading-tight">digitization</p>

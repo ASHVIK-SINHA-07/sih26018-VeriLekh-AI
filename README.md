@@ -14,6 +14,33 @@ Built for Smart India Hackathon problem statement SIH26018.
 
 ---
 
+## The screens
+
+Three screens, all working against a live database. All data shown is synthetic.
+
+### Verification — scan and extracted fields side by side
+
+The reviewer's screen. Low-confidence fields carry an amber border and a
+percentage, the validation banner names the exact finding, and the scan can be
+zoomed and panned to check a value against the page.
+
+![Verification screen](assets/verification.png)
+
+### Dashboard
+
+Live figures from the database — documents processed, mean extraction accuracy,
+records awaiting review and records flagged — with a 14-day trend and an
+activity table whose rows expand in place.
+
+![Dashboard](assets/dashboard.png)
+
+### Verification queue
+
+Everything awaiting a person, searchable and filterable, with the specific
+finding shown per row rather than just a status.
+
+![Verification queue](assets/queue.png)
+
 ## The problem
 
 Across India a large share of land records still exist only as handwritten
@@ -64,6 +91,9 @@ Internal government revenue staff — not the public.
 ---
 
 ## Architecture
+
+![Pipeline architecture](assets/architecture.png)
+
 
 | Layer | Choice | Why |
 |---|---|---|

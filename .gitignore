@@ -50,3 +50,6 @@ next-env.d.ts
 # local build-context notes (not part of the deliverable)
 CLAUDE.md
 docs/
+
+# screenshot scratch directory — curated images live in assets/
+.screenshots/

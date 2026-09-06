@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/register-hooks.mjs --test \"src/**/*.test.ts\""
+    "test": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/register-hooks.mjs --test \"src/**/*.test.ts\"",
+    "benchmark": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/register-hooks.mjs scripts/benchmark.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

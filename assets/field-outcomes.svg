@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="960" viewBox="0 0 1500 960" font-family="DejaVu Sans, Calibri, sans-serif">
+  <rect width="1500" height="960" fill="#ffffff"/>
+
+  <text x="80" y="86" font-size="44" font-weight="bold" fill="#1f2937">What happens to 152 extracted fields</text>
+  <text x="80" y="130" font-size="24" fill="#6b7280">17-document corpus · reproducible with npm run benchmark</text>
+
+  <!-- the bar: 152 fields, segments proportional -->
+  <g>
+    <rect x="80"      y="190" width="894.6" height="104" fill="#1f3864"/>
+    <rect x="974.6"   y="190" width="364.7" height="104" fill="#c8862b"/>
+    <rect x="1339.3"  y="190" width="60.8"  height="104" fill="#a32020"/>
+    <rect x="80" y="190" width="1320" height="104" fill="none" stroke="#ffffff" stroke-width="2"/>
+
+    <text x="110" y="253" font-size="30" font-weight="bold" fill="#ffffff">103 correct</text>
+    <text x="1004" y="253" font-size="30" font-weight="bold" fill="#ffffff">42 flagged</text>
+  </g>
+
+  <!-- callout to the red sliver -->
+  <path d="M1370 320 L1370 366 L1300 366" fill="none" stroke="#a32020" stroke-width="3"/>
+  <text x="1286" y="376" font-size="26" font-weight="bold" fill="#a32020" text-anchor="end">7 wrong, no warning</text>
+
+  <!-- legend rows -->
+  <g>
+    <rect x="80" y="452" width="14" height="76" fill="#1f3864"/>
+    <text x="118" y="496" font-size="48" font-weight="bold" fill="#1f2937">103</text>
+    <text x="228" y="486" font-size="27" fill="#1f2937">Exactly correct — 68%</text>
+    <text x="228" y="521" font-size="23" fill="#6b7280">Matches the register character for character</text>
+
+    <rect x="80" y="580" width="14" height="76" fill="#c8862b"/>
+    <text x="118" y="624" font-size="48" font-weight="bold" fill="#1f2937">42</text>
+    <text x="228" y="614" font-size="27" fill="#1f2937">Wrong, and flagged for review — 86% of all errors</text>
+    <text x="228" y="649" font-size="23" fill="#6b7280">Low confidence or a validation finding; the officer is shown the problem</text>
+
+    <rect x="80" y="708" width="14" height="76" fill="#a32020"/>
+    <text x="118" y="752" font-size="48" font-weight="bold" fill="#1f2937">7</text>
+    <text x="228" y="742" font-size="27" fill="#1f2937">Wrong, and not flagged — 4.6% of all fields</text>
+    <text x="228" y="777" font-size="23" fill="#6b7280">The residual risk. Still shown beside the scan, and never committed without approval</text>
+  </g>
+
+  <line x1="80" y1="846" x2="1420" y2="846" stroke="#d9d2c5" stroke-width="2"/>
+  <text x="80" y="898" font-size="24" fill="#1f2937">
+    <tspan font-weight="bold">No record is verified without a revenue officer.</tspan>
+    <tspan fill="#6b7280"> The AI decides how much attention each needs.</tspan>
+  </text>
+</svg>

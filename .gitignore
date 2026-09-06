@@ -56,3 +56,4 @@ docs/
 
 # working notes, not part of the deliverable
 .notes/
+benchmark-results.json

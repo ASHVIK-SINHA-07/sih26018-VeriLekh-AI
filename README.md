@@ -355,12 +355,32 @@ Responsive layout — phone, tablet, desktop       █████████�
 HTTPS with automatic certificates                ██████████  complete
 ```
 
-Extraction accuracy, measured across seventeen test documents: **95% of fields
-populated, 66% exactly correct**, and **84% of the remaining errors are
-automatically flagged** for human review rather than committed silently. The
-fields that legally identify a parcel do best — khata number 100%, khasra 94%,
-district 94%, survey number 88%, plot area 88%. Devanagari name fields are
-weaker and are where the confidence gate earns its place.
+Extraction accuracy, measured across seventeen test documents and 152
+ground-truth fields: **94% of fields populated, 68% exactly correct**, and
+**86% of the wrong fields are automatically flagged** for human review rather
+than committed silently. The fields that legally identify a parcel do best —
+khata number 100%, district 100%, survey number 94%, khasra 88%, plot area 88%.
+Devanagari name fields are weaker — owner name 18%, land classification 12% —
+and are where the confidence gate earns its place.
+
+Corrections an officer makes are remembered and re-applied to later documents.
+Measured held out, with the corpus split by document so no page appears in both
+halves: taught from 8 documents, scored on the 9 it had never seen, exact-field
+accuracy went from **64% to 73%** — 7 fields, no regressions. Every gain was the
+same failure mode, a transposed matra on a recurring word.
+
+Every figure above comes from one script and nothing else:
+
+```bash
+npm run benchmark            # print the report
+npm run benchmark -- --json  # also write benchmark-results.json
+```
+
+It runs the real OCR service over the seeded corpus and scores the output
+against the ground truth in `prisma/seed-data.ts`. The train/test split is
+deterministic, so the same corpus at the same commit gives the same numbers. If
+a figure in this README, the slide deck, or a conversation does not match the
+script's output, the script is right.
 
 ### Partially built
 
@@ -378,18 +398,17 @@ as simulated and contacts no government system.
 
 ```
 Handwriting recognition                          ░░░░░░░░░░  planned
-Learning from corrections                        ░░░░░░░░░░  data captured
 Cadastral maps and GIS geometry                  ░░░░░░░░░░  planned
 Encryption at rest, SSO, multi-tenancy           ░░░░░░░░░░  planned
 ```
 
-Two of these are closer than they look. **Handwriting** needs a different
+**Handwriting** needs a different
 recognition model behind the existing interface, not new architecture — the
 current engine reads printed Devanagari well and routes anything it cannot read
 confidently to a human, so handwritten annotations are flagged rather than
-mis-transcribed. **Learning from corrections** already has its groundwork: every
-correction an officer makes is stored with its before and after value, which is
-exactly the labelled data a future model would train on. Nothing consumes it yet.
+mis-transcribed. That labelled before/after data is also exactly what a
+fine-tuned recognition model would train on, so the collection pipeline for the
+next step is already running.
 
 Cadastral map digitization is the largest gap and the most valuable next step —
 official figures put national map digitization at roughly 68% complete against

@@ -36,6 +36,14 @@ enum DocumentStatus {
   REJECTED
 }
 
+/// Lifecycle of one queued extraction job.
+enum JobStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
 enum ValidationStatus {
   PASS
   FLAGGED
@@ -63,6 +71,7 @@ model Document {
   record       ExtractedRecord?
   validation   ValidationResult?
   auditLogs    AuditLog[]
+  job          ExtractionJob?
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
 }
@@ -94,6 +103,28 @@ model ValidationResult {
   issues        Json // [{ field, issue }]
   duplicateOfId String?
   createdAt     DateTime         @default(now())
+}
+
+/// A unit of OCR work waiting to be picked up by a worker.
+///
+/// Extraction takes seconds of CPU per page, so it must not run inside the
+/// HTTP request that asks for it — a batch upload would otherwise hold open
+/// one server thread per page and time out. Uploading enqueues a job here and
+/// returns immediately; a separate worker process claims jobs with
+/// `FOR UPDATE SKIP LOCKED`, which lets several workers run concurrently
+/// without ever handing the same job to two of them.
+model ExtractionJob {
+  id         String    @id @default(cuid())
+  document   Document  @relation(fields: [documentId], references: [id])
+  documentId String    @unique
+  status     JobStatus @default(QUEUED)
+  attempts   Int       @default(0)
+  error      String?
+  createdAt  DateTime  @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  @@index([status, createdAt])
 }
 
 model AuditLog {

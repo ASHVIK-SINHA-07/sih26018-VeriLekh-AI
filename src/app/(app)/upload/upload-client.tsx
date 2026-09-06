@@ -25,7 +25,7 @@ import {
  * queue twenty OCR calls and make per-file progress meaningless.
  */
 
-type Stage = "uploading" | "extracting" | "done" | "error";
+type Stage = "uploading" | "queued" | "extracting" | "done" | "error";
 
 interface QueueItem {
   key: string;
@@ -41,10 +41,16 @@ const MAX_MB = Math.round(MAX_UPLOAD_BYTES / 1024 / 1024);
 
 const STAGE_LABEL: Record<Stage, string> = {
   uploading: "Uploading…",
+  queued: "Queued…",
   extracting: "Reading the scan…",
   done: "",
   error: "",
 };
+
+/** How often to ask whether a queued document has finished. */
+const POLL_MS = 1500;
+/** Give up watching after this long; the worker may be backed up. */
+const POLL_TIMEOUT_MS = 180_000;
 
 export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
   const router = useRouter();
@@ -87,24 +93,57 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
         }
 
         const { documentId } = await uploadResponse.json();
-        update(key, { stage: "extracting", documentId });
+        update(key, { stage: "queued", documentId });
 
-        const extractResponse = await fetch(
-          `/api/documents/${documentId}/extract`,
-          { method: "POST" },
-        );
-        if (!extractResponse.ok) {
-          const body = await extractResponse.json().catch(() => ({}));
+        // Queue it. This returns straight away — a worker does the reading.
+        const queued = await fetch(`/api/documents/${documentId}/extract`, {
+          method: "POST",
+        });
+        if (!queued.ok) {
+          const body = await queued.json().catch(() => ({}));
           update(key, {
             stage: "error",
             documentId,
-            message: body.error ?? "Could not read this scan",
+            message: body.error ?? "Could not queue this scan",
           });
           return;
         }
 
-        const { status } = await extractResponse.json();
-        update(key, { stage: "done", documentId, status });
+        update(key, { stage: "extracting", documentId });
+
+        // Watch for the worker to finish. The document leaves PROCESSING
+        // when it does — or goes back to UPLOADED if extraction gave up.
+        const deadline = Date.now() + POLL_TIMEOUT_MS;
+        for (;;) {
+          await new Promise((resolve) => setTimeout(resolve, POLL_MS));
+
+          const detail = await fetch(`/api/documents/${documentId}`);
+          if (!detail.ok) {
+            update(key, { stage: "error", documentId, message: "Lost track of this document" });
+            return;
+          }
+
+          const { status } = (await detail.json()) as { status: DocumentStatus };
+
+          if (status !== "PROCESSING") {
+            update(key, {
+              stage: status === "UPLOADED" ? "error" : "done",
+              documentId,
+              status,
+              message: status === "UPLOADED" ? "Could not read this scan" : undefined,
+            });
+            return;
+          }
+
+          if (Date.now() > deadline) {
+            update(key, {
+              stage: "error",
+              documentId,
+              message: "Still processing — check the queue shortly",
+            });
+            return;
+          }
+        }
       } catch {
         update(key, { stage: "error", message: "Network error — is the server running?" });
       }

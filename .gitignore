@@ -53,3 +53,6 @@ docs/
 
 # screenshot scratch directory — curated images live in assets/
 .screenshots/
+
+# working notes, not part of the deliverable
+.notes/

@@ -74,6 +74,27 @@ services:
       ocr:
         condition: service_started
 
+  # Drains the extraction queue. Runs the same image as the application but
+  # a different command, so it shares the code and the database connection
+  # without a second build. Scale it with `docker compose up -d --scale
+  # worker=3` — SKIP LOCKED means the copies never collide.
+  worker:
+    build: .
+    restart: unless-stopped
+    command: node --import ./scripts/register-hooks.mjs src/worker.ts
+    environment:
+      DATABASE_URL: postgresql://sih:${POSTGRES_PASSWORD:-sih_local_dev}@db:5432/landrecords
+      OCR_SERVICE_URL: http://ocr:8000
+      UPLOAD_DIR: ./uploads
+      NODE_ENV: production
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      ocr:
+        condition: service_started
+
   # TLS termination and the only service exposed to the network.
   # Obtains and renews certificates automatically — a real one for a public
   # hostname, its own for a closed department network.

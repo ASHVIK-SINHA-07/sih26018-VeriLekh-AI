@@ -22,6 +22,7 @@ import unicodedata
 from pathlib import Path
 
 import cairosvg
+import cv2
 import numpy as np
 import pytesseract
 from fastapi import FastAPI, HTTPException
@@ -53,6 +54,25 @@ PSM_MODES = ("--psm 11", "--psm 6")
 MIN_RENDER_WIDTH = 3000
 PDF_DPI = 300
 MIN_WORD_CONFIDENCE = 30.0
+
+# Preprocessing steps, each switchable so their effect can be measured rather
+# than assumed. Defaults are what measured best on our test corpus.
+DESKEW = os.environ.get("OCR_DESKEW", "1") == "1"
+DENOISE = os.environ.get("OCR_DENOISE", "0") == "1"
+ADAPTIVE = os.environ.get("OCR_ADAPTIVE", "0") == "1"
+
+# Largest skew we try to correct, in degrees, and the search step. A scan fed
+# through a flatbed is rarely more than a couple of degrees out; a photograph
+# of a register can be more.
+MAX_SKEW_DEGREES = 6.0
+SKEW_STEP = 0.25
+# Do not rotate for a skew this small. Measured: correcting a already-straight
+# page by a quarter of a degree costs more in resampling blur than it gains in
+# alignment. Correction only pays from roughly half a degree upward.
+MIN_SKEW_TO_CORRECT = 0.5
+# Angle detection runs on a downscaled copy — the skew of a page is a
+# whole-page property and does not need full resolution to measure.
+SKEW_DETECT_WIDTH = 900
 
 app = FastAPI(title="Land record OCR", version="1.0")
 
@@ -103,6 +123,57 @@ def rasterise(path: Path) -> Image.Image:
     return image
 
 
+def rotate(array: np.ndarray, angle: float, border: int = 255) -> np.ndarray:
+    """Rotate about the centre, filling new corners with page colour."""
+    height, width = array.shape[:2]
+    matrix = cv2.getRotationMatrix2D((width / 2, height / 2), angle, 1.0)
+    return cv2.warpAffine(
+        array, matrix, (width, height),
+        flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_CONSTANT, borderValue=border,
+    )
+
+
+def find_skew(gray: np.ndarray) -> float:
+    """
+    Estimate how far the page is rotated, by projection profile.
+
+    Text lines are horizontal, so when a page is straight the row-sums of its
+    ink form sharp peaks and troughs. Rotating through candidate angles and
+    keeping the one whose profile varies most finds the angle that lines the
+    text up. This is more reliable on a dense ruled register than fitting a
+    box around all the ink, which a table border easily throws off.
+
+    Runs on a downscaled copy: skew is a whole-page property, and measuring it
+    at full resolution would cost seconds for no extra accuracy.
+
+    Measured behaviour: reliable for the one-to-three degree skew a hand-fed
+    scan or desk photograph actually shows, where it recovers fields the
+    recogniser would otherwise miss. Detection degrades beyond about four
+    degrees, where the blank corners left by the rotation start to dominate
+    the profile — a badly skewed page is better rescanned than corrected.
+    """
+    scale = SKEW_DETECT_WIDTH / gray.shape[1]
+    if scale < 1.0:
+        small = cv2.resize(gray, (SKEW_DETECT_WIDTH, int(gray.shape[0] * scale)),
+                           interpolation=cv2.INTER_AREA)
+    else:
+        small = gray
+
+    # Ink as white on black, so row sums measure how much text is on each line.
+    ink = cv2.threshold(small, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+
+    best_angle, best_score = 0.0, -1.0
+    angle = -MAX_SKEW_DEGREES
+    while angle <= MAX_SKEW_DEGREES + 1e-9:
+        profile = np.sum(rotate(ink, angle, border=0), axis=1, dtype=np.float64)
+        score = float(np.sum(np.diff(profile) ** 2))
+        if score > best_score:
+            best_score, best_angle = score, angle
+        angle += SKEW_STEP
+
+    return best_angle
+
+
 def preprocess(image: Image.Image) -> Image.Image:
     """
     Normalise a page before recognition.
@@ -118,7 +189,41 @@ def preprocess(image: Image.Image) -> Image.Image:
     needs read correctly.
     """
     gray = ImageOps.grayscale(image)
+    array = np.array(gray)
+
+    # 1. Straighten the page. A scan fed by hand or photographed on a desk is
+    #    rarely square, and a degree or two of skew is enough to make the
+    #    recogniser merge adjacent lines of a ruled register.
+    if DESKEW:
+        angle = find_skew(array)
+        if abs(angle) >= MIN_SKEW_TO_CORRECT:
+            array = rotate(array, angle)
+            log.info("deskewed by %.2f degrees", angle)
+
+    # 2. Remove speckle from an aged or photographed page, without softening
+    #    the thin strokes Devanagari depends on.
+    if DENOISE:
+        array = cv2.fastNlMeansDenoising(array, None, h=7,
+                                         templateWindowSize=7, searchWindowSize=21)
+
+    gray = Image.fromarray(array)
+
+    # 3. Stretch the tonal range. Aged registers photograph with no true black
+    #    or white — one of our own sample pages spans only grey 56-191, and the
+    #    recogniser reads far less from it untouched.
     gray = ImageOps.autocontrast(gray, cutoff=2)
+
+    # 4. Optional local thresholding for pages lit unevenly. Off by default:
+    #    measured on our corpus it lost more thin matras than it gained in
+    #    contrast. Enable with OCR_ADAPTIVE=1 for badly photographed input.
+    if ADAPTIVE:
+        array = cv2.adaptiveThreshold(
+            np.array(gray), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY, blockSize=31, C=15,
+        )
+        gray = Image.fromarray(array)
+
+    # 5. Restore the stroke edges the upscaling softened.
     return gray.filter(ImageFilter.UnsharpMask(radius=2, percent=140, threshold=3))
 
 

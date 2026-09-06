@@ -58,6 +58,7 @@ Upload scan → OCR extracts text → fields are mapped to a structured record
    → each field gets a confidence score → validation flags problems
    → a human verifies the low-confidence fields → record is committed
    → ULPIN-style ID generated, action written to the audit trail
+   → every correction is remembered and applied to the next document
 ```
 
 A record is only ever committed by a person. The AI narrows what that person has
@@ -346,11 +347,12 @@ Field extraction into structured records         ██████████ 
 Per-field confidence scoring                     ██████████  complete
 Validation — missing, range, duplicate, conflict ██████████  complete
 Human verification workflow                      ██████████  complete
+Correction memory — learns from every fix        ██████████  complete
 Append-only audit trail                          ██████████  complete
 Role-based access control                        ██████████  complete
 Dashboards and reporting                         ██████████  complete
 REST API for onward integration                  ██████████  complete
-Asynchronous extraction queue with retries        ██████████  complete
+Asynchronous extraction queue with retries       ██████████  complete
 Responsive layout — phone, tablet, desktop       ██████████  complete
 HTTPS with automatic certificates                ██████████  complete
 ```
@@ -402,13 +404,13 @@ Cadastral maps and GIS geometry                  ░░░░░░░░░░ 
 Encryption at rest, SSO, multi-tenancy           ░░░░░░░░░░  planned
 ```
 
-**Handwriting** needs a different
-recognition model behind the existing interface, not new architecture — the
-current engine reads printed Devanagari well and routes anything it cannot read
-confidently to a human, so handwritten annotations are flagged rather than
-mis-transcribed. That labelled before/after data is also exactly what a
-fine-tuned recognition model would train on, so the collection pipeline for the
-next step is already running.
+**Handwriting** needs a different recognition model behind the existing
+interface, not new architecture. The current engine reads printed Devanagari
+well and routes anything it cannot read confidently to a human, so handwritten
+annotations are flagged rather than mis-transcribed. The correction memory also
+stores every fix with its before and after value — which is precisely the
+labelled line data a fine-tuned recogniser would train on, so the collection
+pipeline for that next step is already running.
 
 Cadastral map digitization is the largest gap and the most valuable next step —
 official figures put national map digitization at roughly 68% complete against

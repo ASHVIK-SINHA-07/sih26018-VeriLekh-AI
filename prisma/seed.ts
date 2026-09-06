@@ -89,6 +89,7 @@ async function writeScan(doc: SeedDoc, scanDir: string): Promise<string> {
 
 async function seedDocuments(userIds: Record<"ADMIN" | "VERIFIER", string>) {
   // Wipe in FK order — children before parents.
+  await db.learnedCorrection.deleteMany();
   await db.auditLog.deleteMany();
   await db.validationResult.deleteMany();
   await db.extractedRecord.deleteMany();
@@ -176,6 +177,26 @@ async function main() {
     console.log(`  ${user.role.padEnd(8)}  ${user.email.padEnd(26)}  ${user.password}`);
   }
 
+  /* ------------------------------------------- what the system already knows
+   * Corrections officers made during earlier verification rounds. These are
+   * real misreadings, taken from the measured backtest — Tesseract transposes
+   * matras and does it consistently on the same words.
+   *
+   * Deliberately none of the planted demo problems: the demo is meant to show
+   * an officer *teaching* the system something new, which only works if that
+   * particular correction has not been learned already.
+   */
+  const LEARNED: { field: string; wrongValue: string; rightValue: string; occurrences: number }[] = [
+    { field: "tehsil", wrongValue: "पडिरा", rightValue: "पिंडरा", occurrences: 4 },
+    { field: "village", wrongValue: "टकिरी", rightValue: "टिकरी", occurrences: 3 },
+    { field: "ownerName", wrongValue: "राम नरेश तविारी", rightValue: "राम नरेश तिवारी", occurrences: 2 },
+    { field: "village", wrongValue: "देवरीखस", rightValue: "देवरीखास", occurrences: 2 },
+    { field: "district", wrongValue: "गोरखपरु", rightValue: "गोरखपुर", occurrences: 1 },
+  ];
+  await db.learnedCorrection.createMany({
+    data: LEARNED.map((c) => ({ ...c, applied: Math.max(0, c.occurrences - 1) })),
+  });
+
   console.log(`\nSeeded ${SEED_DOCS.length} synthetic documents:`);
   for (const c of counts.sort((a, b) => a.status.localeCompare(b.status))) {
     console.log(`  ${c.status.padEnd(11)} ${c._count}`);
@@ -185,6 +206,9 @@ async function main() {
   for (const doc of planted) {
     console.log(`  ${doc.filename.padEnd(32)} ${doc.note?.replace(/^PLANTED #\d+ — /, "")}`);
   }
+
+  const learned = await db.learnedCorrection.aggregate({ _sum: { occurrences: true, applied: true } });
+  console.log(`\nSeeded ${LEARNED.length} learned corrections (${learned._sum.occurrences} officer corrections, applied ${learned._sum.applied} times).`);
 
   console.log("\nAll data is synthetic. Local development only.\n");
 }

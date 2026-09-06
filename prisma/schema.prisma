@@ -127,6 +127,38 @@ model ExtractionJob {
   @@index([status, createdAt])
 }
 
+/// A misreading an officer has corrected, remembered so the pipeline stops
+/// repeating it.
+///
+/// The recogniser makes the *same* mistakes over and over — one district's
+/// register hand, one faded stamp, one matra it consistently transposes. Every
+/// correction an officer makes is already recorded in the audit trail; this
+/// turns that record into something the pipeline reads back. After an officer
+/// fixes "मलहिबाद" to "मलिहाबाद" once, the next page carrying that misreading
+/// is corrected before it reaches anyone.
+///
+/// Deliberately narrow: corrections are keyed to a specific field, matched
+/// exactly, and never invented — the system only ever repeats a substitution a
+/// human already made and approved.
+model LearnedCorrection {
+  id          String   @id @default(cuid())
+  /// Which field this applies to; a name correction must not leak into a village.
+  field       String
+  /// What the recogniser produced, normalised for lookup.
+  wrongValue  String
+  /// What the officer replaced it with.
+  rightValue  String
+  /// How many separate times an officer has made this same correction.
+  occurrences Int      @default(1)
+  /// How many times the pipeline has since applied it automatically.
+  applied     Int      @default(0)
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @updatedAt
+
+  @@unique([field, wrongValue])
+  @@index([field])
+}
+
 model AuditLog {
   id         String   @id @default(cuid())
   document   Document @relation(fields: [documentId], references: [id])

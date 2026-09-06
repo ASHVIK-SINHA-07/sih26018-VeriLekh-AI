@@ -125,13 +125,21 @@ export function VerifyClient(props: Props) {
           className={`border-l-[3px] bg-panel px-4 py-3 ${
             props.validation.status === "DUPLICATE"
               ? "border-l-status-flagged"
-              : "border-l-low-confidence"
+              : props.validation.status === "PASS"
+                ? "border-l-status-verified"
+                : "border-l-low-confidence"
           } border-y border-r border-y-hairline border-r-hairline`}
         >
           <p className="text-[13.5px] font-semibold text-foreground">
             {props.validation.status === "DUPLICATE"
               ? "This looks like a parcel that is already recorded"
-              : `${props.validation.issues.length} thing${props.validation.issues.length === 1 ? "" : "s"} to check before approving`}
+              : props.validation.status === "PASS"
+                ? // Nothing is wrong with this record — the only notes on it
+                  // are values the system corrected from what officers have
+                  // taught it. Saying "things to check" here would be alarming
+                  // and wrong.
+                  `${props.validation.issues.length} field${props.validation.issues.length === 1 ? "" : "s"} corrected from earlier reviews`
+                : `${props.validation.issues.length} thing${props.validation.issues.length === 1 ? "" : "s"} to check before approving`}
           </p>
           <ul className="mt-2 space-y-1">
             {props.validation.issues.map((issue, index) => (

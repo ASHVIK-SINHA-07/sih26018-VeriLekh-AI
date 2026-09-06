@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fromJson } from "@/lib/json";
 import { getDashboardStats } from "@/lib/stats";
+import { learningStats } from "@/lib/learning";
 import { ScreenHeader } from "@/components/screen-header";
 import { StatCard } from "@/components/stat-card";
 import { Panel } from "@/components/panel";
@@ -30,8 +31,11 @@ export default async function DashboardPage({
   const { district } = await searchParams;
   const readOnly = session.user.role === "VIEWER";
 
-  const [stats, recent] = await Promise.all([
+  const [stats, learning, recent] = await Promise.all([
     getDashboardStats(district),
+    // Not filtered by district: what the recogniser has been taught applies
+    // to every page it reads afterwards, wherever that page came from.
+    learningStats(),
     db.document.findMany({
       where: district ? { record: { district } } : {},
       orderBy: { updatedAt: "desc" },
@@ -101,6 +105,26 @@ export default async function DashboardPage({
             tone="flagged"
           />
         </div>
+
+        {/* What officers have taught the recogniser. Shown as a sentence
+            rather than another tile — the point is the trajectory, not the
+            figure, and a fifth big number would flatten the strip above. */}
+        {learning.distinctCorrections > 0 ? (
+          <div className="border border-hairline bg-panel px-4 py-3 sm:px-5">
+            <p className="text-[13.5px] text-foreground">
+              <span className="font-semibold">Learning from verification.</span>{" "}
+              Officers have corrected{" "}
+              <span className="font-semibold tabular-nums">{asCount(learning.distinctCorrections)}</span>{" "}
+              distinct misreading{learning.distinctCorrections === 1 ? "" : "s"}, and the
+              pipeline has since applied {learning.timesApplied === 0 ? "none of them" : <>them <span className="font-semibold tabular-nums">{asCount(learning.timesApplied)}</span> time{learning.timesApplied === 1 ? "" : "s"}</>}{" "}
+              without anyone being asked twice.
+            </p>
+            <p className="mt-1 text-[12.5px] text-ink-2">
+              Every substitution is one a revenue officer made and approved. None are invented,
+              and each one is shown to the next reviewer who sees it applied.
+            </p>
+          </div>
+        ) : null}
 
         <Panel
           title="Documents processed over time"

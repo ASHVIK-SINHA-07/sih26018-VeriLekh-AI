@@ -1,3 +1,4 @@
+import { compareNames, samePlace } from "@/lib/similarity";
 import {
   FIELD_LABELS,
   LOW_CONFIDENCE_THRESHOLD,
@@ -56,24 +57,31 @@ function normalise(value: string | null): string {
   return (value ?? "").trim().toLowerCase();
 }
 
-/** Same physical parcel: same district, village and khasra number. */
+/**
+ * Same physical parcel: same district, same village, same khasra number.
+ *
+ * The khasra number must match exactly — it is the parcel's identifier and a
+ * single digit's difference is a different plot. District and village are
+ * compared allowing for spelling variation, because they are read off the
+ * same faded paper and a duplicate should not be missed over one character.
+ */
 function isSameParcel(fields: ExtractedFields, existing: ExistingRecord): boolean {
-  const keys = ["district", "village", "khasraNumber"] as const;
-  return keys.every((key) => {
-    const candidate = normalise(fields[key]);
-    const other = normalise(existing[key]);
-    return candidate.length > 0 && candidate === other;
-  });
+  const khasra = normalise(fields.khasraNumber);
+  if (!khasra || khasra !== normalise(existing.khasraNumber)) return false;
+  return (
+    samePlace(fields.district, existing.district) &&
+    samePlace(fields.village, existing.village)
+  );
 }
 
 /** Same khata holding, used to spot a contradictory owner name. */
 function isSameKhata(fields: ExtractedFields, existing: ExistingRecord): boolean {
-  const keys = ["district", "village", "khataNumber"] as const;
-  return keys.every((key) => {
-    const candidate = normalise(fields[key]);
-    const other = normalise(existing[key]);
-    return candidate.length > 0 && candidate === other;
-  });
+  const khata = normalise(fields.khataNumber);
+  if (!khata || khata !== normalise(existing.khataNumber)) return false;
+  return (
+    samePlace(fields.district, existing.district) &&
+    samePlace(fields.village, existing.village)
+  );
 }
 
 function checkRequiredFields(fields: ExtractedFields): ValidationIssue[] {
@@ -171,18 +179,28 @@ export function validateRecord({
     return { status: "DUPLICATE", issues, duplicateOf: duplicate.documentId };
   }
 
-  // Same khata, different owner: one of the two records is wrong.
-  const conflicting = others.find(
-    (record) =>
-      isSameKhata(fields, record) &&
-      normalise(record.ownerName).length > 0 &&
-      normalise(fields.ownerName) !== normalise(record.ownerName),
-  );
-  if (conflicting) {
+  // Same khata holding, but the owner reads differently. How the difference is
+  // reported depends on how different it actually is: an omitted surname or a
+  // misread matra is a name variant to confirm, while an unrelated name on the
+  // same holding is an ownership conflict.
+  for (const record of others) {
+    if (!isSameKhata(fields, record)) continue;
+    if (!record.ownerName) continue;
+
+    const match = compareNames(fields.ownerName, record.ownerName);
+    if (match.verdict === "same") continue;
+
+    const percent = Math.round(match.score * 100);
     issues.unshift({
       field: "ownerName",
-      issue: `Owner name conflicts with the existing record for khata ${fields.khataNumber} (${conflicting.ownerName})`,
+      issue:
+        match.verdict === "different"
+          ? `Owner name conflicts with the existing record for khata ${fields.khataNumber} (${record.ownerName})`
+          : match.subset
+            ? `Owner name may be incomplete — the existing record for khata ${fields.khataNumber} reads "${record.ownerName}" (${percent}% match)`
+            : `Owner name differs from the existing record for khata ${fields.khataNumber} — "${record.ownerName}" (${percent}% match); check for a misread`,
     });
+    break;
   }
 
   return {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { CAN_WRITE, requireRole } from "@/lib/api-auth";
 import { toJson } from "@/lib/json";
+import { learnCorrection } from "@/lib/learning";
 import { validateRecord, type ExistingRecord } from "@/lib/validate";
 import { generateUlpin } from "@/lib/ulpin";
 import {
@@ -184,6 +185,14 @@ export async function PUT(
       },
     }),
   ]);
+
+  // Remember every substitution the officer made, so the pipeline stops
+  // repeating that misreading on the next page that carries it. Deliberately
+  // outside the transaction above: failing to learn must never roll back a
+  // verification a person has already committed.
+  await Promise.all(
+    edits.map((edit) => learnCorrection(edit.field, edit.before, edit.after)),
+  ).catch(() => {});
 
   const response: VerifyResponse = { documentId: id, status };
   return NextResponse.json(response);

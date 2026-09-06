@@ -12,6 +12,7 @@ import { runOcr, isMockOcr, type OcrResult } from "@/lib/ocr";
 import { extractFields, meanConfidence } from "@/lib/extract";
 import { validateRecord, lowConfidenceFields, type ExistingRecord } from "@/lib/validate";
 import { generateUlpin, isValidUlpin, ULPIN_LENGTH } from "@/lib/ulpin";
+import { compareNames, editDistance, nameTokens, samePlace } from "@/lib/similarity";
 import { LOW_CONFIDENCE_THRESHOLD, type ExtractedFields } from "@/types";
 
 /* ------------------------------------------------------------------ ulpin */
@@ -192,14 +193,91 @@ test("validate: PLANTED #1 — duplicate parcel is caught and linked", () => {
   assert.match(result.issues[0].issue, /UP62B4F19C83A7/, "should name the existing ULPIN");
 });
 
-test("validate: PLANTED #2 — same khata, different owner is flagged", () => {
+test("validate: PLANTED #2 — a dropped surname reads as an incomplete name, not a conflict", () => {
   const result = validateRecord({
     fields: { ...VALID, khasraNumber: "999", ownerName: "सुनीता देवी" },
     confidence: GOOD_CONF,
     existing: [{ ...EXISTING, ownerName: "सुनीता देवी मिश्रा" }],
   });
   assert.equal(result.status, "FLAGGED");
+  assert.ok(
+    result.issues.some((i) => /may be incomplete/.test(i.issue)),
+    "an omitted surname is a name variant to confirm, not a different owner",
+  );
+});
+
+test("validate: an unrelated name on the same khata IS a conflict", () => {
+  const result = validateRecord({
+    fields: { ...VALID, khasraNumber: "999", ownerName: "मोहम्मद इरफान अंसारी" },
+    confidence: GOOD_CONF,
+    existing: [{ ...EXISTING, ownerName: "सुनीता देवी मिश्रा" }],
+  });
+  assert.equal(result.status, "FLAGGED");
   assert.ok(result.issues.some((i) => /conflicts with the existing record/.test(i.issue)));
+});
+
+test("validate: a misread matra is not treated as a different owner", () => {
+  // Tesseract reads स्वामी as सवामी and reorders matras; the same person must
+  // not be reported as an ownership conflict because of it.
+  const result = validateRecord({
+    fields: { ...VALID, khasraNumber: "999", ownerName: "राजेश कुमर वर्मा" },
+    confidence: GOOD_CONF,
+    existing: [{ ...EXISTING, ownerName: "राजेश कुमार वर्मा" }],
+  });
+  assert.ok(
+    !result.issues.some((i) => /conflicts with the existing record/.test(i.issue)),
+    "a one-character spelling difference is not a different person",
+  );
+});
+
+/* ------------------------------------------------------------- similarity */
+
+test("similarity: edit distance", () => {
+  assert.equal(editDistance("कुमार", "कुमार"), 0);
+  assert.equal(editDistance("कुमार", "कुमर"), 1);
+  assert.equal(editDistance("", "abc"), 3);
+});
+
+test("similarity: honorifics and relationship words are not identifying", () => {
+  assert.deepEqual(nameTokens("श्री राजेश कुमार वर्मा"), ["राजेश", "कुमार", "वर्मा"]);
+  assert.deepEqual(nameTokens("सुनीता देवी पत्नी स्व राधेश्याम"), ["सुनीता", "देवी", "राधेश्याम"]);
+});
+
+test("similarity: identical names score 1 and read as the same person", () => {
+  const m = compareNames("राजेश कुमार वर्मा", "राजेश कुमार वर्मा");
+  assert.equal(m.score, 1);
+  assert.equal(m.verdict, "same");
+});
+
+test("similarity: word order does not matter", () => {
+  assert.equal(compareNames("कुमार राजेश", "राजेश कुमार").verdict, "same");
+});
+
+test("similarity: a dropped surname is a variant, and is marked as a subset", () => {
+  const m = compareNames("सुनीता देवी", "सुनीता देवी मिश्रा");
+  assert.equal(m.verdict, "variant");
+  assert.ok(m.subset, "every word of the shorter name appears in the longer one");
+});
+
+test("similarity: matra variation from OCR still matches", () => {
+  // मलिहाबाद read as मलहिबाद — same consonants, matras reordered.
+  assert.ok(samePlace("मलिहाबाद", "मलहिबाद"));
+  assert.ok(samePlace("रामपुर खुर्द", "रामपुर खुर्‌द"));
+});
+
+test("similarity: genuinely different names are reported as different", () => {
+  const m = compareNames("सुनीता देवी मिश्रा", "मोहम्मद इरफान अंसारी");
+  assert.equal(m.verdict, "different");
+  assert.ok(m.score < 0.55);
+});
+
+test("similarity: different villages are not the same place", () => {
+  assert.equal(samePlace("रामपुर खुर्द", "भगवंतपुर"), false);
+});
+
+test("similarity: a missing name is never a match", () => {
+  assert.equal(compareNames(null, "राजेश कुमार").verdict, "different");
+  assert.equal(samePlace("", "रामपुर"), false);
 });
 
 test("validate: PLANTED #3 — a missing required field is flagged", () => {

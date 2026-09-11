@@ -106,6 +106,8 @@ export type IssueKind =
   | "ownerVariant"   // same holding, a name that differs by a likely misread
   | "sourceConflict" // another government system holds a different value
   | "sourceStale"    // a source has not been updated in years
+  | "chainDefect"    // the ownership chain is broken: double sale, dead seller…
+  | "chainWarning"   // the chain needs a look: backdated entry, unlisted co-owner
   | "learned";       // informational: a remembered correction was applied
 
 export interface ValidationIssue {

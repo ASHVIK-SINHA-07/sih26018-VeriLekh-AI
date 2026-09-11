@@ -61,7 +61,7 @@ export function ReconciliationPanel({ result }: { result: ReconciliationSummary 
       <div className="px-4 py-3">
         {notFound ? (
           <p className="text-[12.5px] text-ink-2">
-            No external source holds khasra for this parcel. That is expected for a
+            No external system holds a record of this parcel. That is expected for a
             record being digitised for the first time — there is nothing upstream to
             check it against yet.
           </p>

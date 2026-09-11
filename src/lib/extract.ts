@@ -28,16 +28,29 @@ import {
  * skeletons makes those the same string, so a label is recognised however
  * the engine happened to spell it.
  */
+/**
+ * Devanagari field labels, Hindi first then Marathi.
+ *
+ * Both languages share the script, so one recognition pass reads either — but
+ * they do not share the vocabulary. A Maharashtra 7/12 extract says जिल्हा
+ * where a UP khatauni says जिला, तालुका for तहसील, गाव for ग्राम. Listing the
+ * alternates here is all it takes to read both, because matching is on the
+ * consonant skeleton (D36) rather than the literal string.
+ *
+ * Longer labels must come before their own prefixes — `खाते क्रमांक` before
+ * `खाता`, `गट क्रमांक` before `गट` — or the shorter one matches first and the
+ * value is read from the wrong column.
+ */
 const DEVANAGARI_LABELS: Record<ExtractedFieldName, string[]> = {
-  ownerName: ["स्वामी का नाम", "खातेदार", "भूमिधर"],
-  surveyNumber: ["सर्वे संख्या", "सर्वे"],
-  khasraNumber: ["खसरा संख्या", "खसरा"],
-  khataNumber: ["खाता संख्या", "खाता"],
-  plotArea: ["क्षेत्रफल", "रकबा"],
-  village: ["ग्राम", "गाँव"],
-  tehsil: ["तहसील"],
-  district: ["जिला", "जनपद"],
-  landClassification: ["भूमि वर्ग", "भूमि का प्रकार"],
+  ownerName: ["स्वामी का नाम", "मालकाचे नाव", "खातेदाराचे नाव", "खातेदार", "भूमिधर"],
+  surveyNumber: ["सर्वे संख्या", "सर्व्हे क्रमांक", "सर्वे"],
+  khasraNumber: ["खसरा संख्या", "गट क्रमांक", "भूमापन क्रमांक", "खसरा"],
+  khataNumber: ["खाता संख्या", "खाते क्रमांक", "खाता"],
+  plotArea: ["क्षेत्रफल", "क्षेत्र", "रकबा"],
+  village: ["ग्राम", "गाँव", "गाव"],
+  tehsil: ["तहसील", "तालुका"],
+  district: ["जिला", "जिल्हा", "जनपद"],
+  landClassification: ["भूमि वर्ग", "जमीन प्रकार", "भूमि का प्रकार"],
 };
 
 /** Romanised fallbacks, for a page or engine that transliterates. */

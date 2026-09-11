@@ -4,6 +4,7 @@ import { runOcr } from "@/lib/ocr";
 import { extractFields } from "@/lib/extract";
 import { applyLearnedCorrections } from "@/lib/learning";
 import { scoreRecord } from "@/lib/quality";
+import { gatherEvidence } from "@/lib/evidence";
 import { validateRecord, type ExistingRecord } from "@/lib/validate";
 import type { DocumentStatus, ExtractResponse } from "@/types";
 
@@ -67,7 +68,12 @@ export async function runExtraction(documentId: string): Promise<ExtractResponse
 
   // Scored after the learned corrections and the validation findings are in,
   // so the number reflects the record a reviewer will actually see.
-  const quality = scoreRecord({ fields, confidence, issues: validation.issues });
+  // Judged on the same evidence the reviewer will see: what other systems
+  // hold for this parcel and how its ownership came about (D50).
+  const evidence = await gatherEvidence(fields);
+  const quality = scoreRecord({
+    fields, confidence, issues: [...validation.issues, ...evidence.issues],
+  });
 
   const recordData = {
     ownerName: fields.ownerName, surveyNumber: fields.surveyNumber,

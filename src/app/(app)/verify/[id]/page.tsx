@@ -6,7 +6,8 @@ import { fromJson } from "@/lib/json";
 import { AuditTrail } from "@/components/audit-trail";
 import { QualityPanel } from "@/components/quality-panel";
 import { ReconciliationPanel } from "@/components/reconciliation-panel";
-import { reconcile, reconciliationIssues, type AuthoritativeRow, type SourceName } from "@/lib/reconcile";
+import { ChainPanel } from "@/components/chain-panel";
+import { gatherEvidence } from "@/lib/evidence";
 import { scoreRecord } from "@/lib/quality";
 import { verifyDocumentChain } from "@/lib/audit";
 import { VerifyClient } from "./verify-client";
@@ -97,38 +98,21 @@ export default async function VerifyDetailPage({
     timestamp: entry.timestamp.toISOString(),
   }));
 
+  // The audit trail's own integrity — whether its hash chain still verifies.
+  const provenance = await verifyDocumentChain(document.id);
+
+  // Everything known about this parcel beyond the page: what other systems
+  // hold, and how its ownership came about. Same evidence the pipeline scored
+  // against, so the stored number and the one on screen agree (D50).
+  const evidence = await gatherEvidence(fields);
+
   // Scored on read rather than trusted from the column: the stored number is
-  // for ranking on the dashboard, but the reviewer looking at this page should
-  // see a score derived from exactly the record and findings in front of them.
-  const chain = await verifyDocumentChain(document.id);
-
-  // What the other government systems hold for this parcel. Narrowed by
-  // khasra first so a district-wide scan never loads every row.
-  const sourceRows = fields.khasraNumber
-    ? await db.authoritativeRecord.findMany({ where: { khasraNumber: fields.khasraNumber } })
-    : [];
-  const reconciliation = reconcile({
-    fields,
-    sources: sourceRows.map((r): AuthoritativeRow => ({
-      source: r.source as SourceName,
-      khasraNumber: r.khasraNumber,
-      village: r.village,
-      district: r.district,
-      ownerName: r.ownerName,
-      khataNumber: r.khataNumber,
-      plotArea: r.plotArea,
-      landClassification: r.landClassification,
-      asOf: r.asOf,
-    })),
-  });
-
-  // Scored last, against both our own findings and what other systems hold —
-  // a record the rest of government disagrees with is not a clean record,
-  // and the two panels must not tell the reviewer different stories.
+  // for ranking on the dashboard; the reviewer sees a score derived from
+  // exactly the record and findings in front of them.
   const quality = scoreRecord({
     fields,
     confidence: fromJson<ConfidenceMap>(record.confidence, {}),
-    issues: [...(validation?.issues ?? []), ...reconciliationIssues(reconciliation)],
+    issues: [...(validation?.issues ?? []), ...evidence.issues],
   });
 
   return (
@@ -144,8 +128,9 @@ export default async function VerifyDetailPage({
       duplicateOf={duplicateOf}
     />
     <div className="space-y-4 px-4 pb-4 sm:px-7 sm:pb-7">
-      <QualityPanel quality={quality} chain={chain} />
-      <ReconciliationPanel result={reconciliation} />
+      <QualityPanel quality={quality} chain={provenance} />
+      <ChainPanel chain={evidence.chain} khasra={fields.khasraNumber} />
+      <ReconciliationPanel result={evidence.reconciliation} />
       <AuditTrail entries={auditEntries} />
     </div>
     </div>

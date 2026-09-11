@@ -52,6 +52,15 @@ async function read(d: (typeof docs)[number]): Promise<Read> {
   return { key: d.key, fields: fields as never, conf: confidence as never };
 }
 
+const { isMockOcr } = await import("@/lib/ocr");
+if (isMockOcr()) {
+  console.error(
+    "\nREFUSING TO RUN: OCR_SERVICE_URL is not set, so this would measure the\n" +
+    "mock engine rather than Tesseract. Run it as:\n\n" +
+    "  OCR_SERVICE_URL=http://localhost:8001 npm run benchmark\n",
+  );
+  process.exit(1);
+}
 process.stdout.write(`Reading ${docs.length} documents through the OCR service`);
 const reads: Read[] = [];
 for (const d of docs) {

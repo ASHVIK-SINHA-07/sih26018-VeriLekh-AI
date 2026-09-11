@@ -163,6 +163,68 @@ model LearnedCorrection {
   @@index([field])
 }
 
+/// A parcel of land — the thing that persists while owners, documents and
+/// records come and go.
+///
+/// Until now a parcel existed only as fields on whichever document mentioned
+/// it. Chain of title needs it to be first-class: the khatauni says who owns
+/// the land *now*; the mutation register says how they came to, and the
+/// parcel is what both are evidence about.
+model Parcel {
+  id           String     @id @default(cuid())
+  khasraNumber String
+  village      String
+  district     String
+  tehsil       String?
+  mutations    Mutation[]
+  createdAt    DateTime   @default(now())
+
+  @@unique([khasraNumber, village, district])
+}
+
+enum MutationType {
+  ORIGINAL     // the earliest entry on record — no transferor
+  SALE         // बैनामा
+  INHERITANCE  // वरासत — the transferor has died
+  GIFT         // दान
+  PARTITION    // बंटवारा
+  DECREE       // court order
+}
+
+/// One change of ownership — a दाखिल-खारिज (mutation) entry.
+///
+/// Bitemporal: `effectiveDate` is when the transfer happened in the world,
+/// `recordedAt` is when this system learned of it. A 2008 sale digitised in
+/// 2026 has both, and conflating them is the classic error — it hides
+/// backdating, and it makes a late-entered record look contemporaneous.
+///
+/// Never overwritten. A correction is a new row whose `supersedesId` points at
+/// the row it replaces, so the system can always show what it used to believe
+/// and when it changed its mind.
+model Mutation {
+  id               String       @id @default(cuid())
+  parcel           Parcel       @relation(fields: [parcelId], references: [id])
+  parcelId         String
+  /// Order of entry in the register — not necessarily the order of events.
+  seq              Int
+  mutationNumber   String?
+  type             MutationType
+  fromOwner        String?
+  toOwner          String
+  /// Fraction of the whole parcel transferred: "1", "1/2", "1/3".
+  share            String
+  effectiveDate    DateTime
+  recordedAt       DateTime     @default(now())
+  orderReference   String?
+  /// The scan this entry was read from, when it was digitised by the pipeline.
+  sourceDocumentId String?
+  /// Set on a correction: the row this one replaces.
+  supersedesId     String?
+  createdAt        DateTime     @default(now())
+
+  @@index([parcelId, effectiveDate])
+}
+
 /// Which government system a record came from.
 ///
 /// The problem statement asks for verification against existing land-record

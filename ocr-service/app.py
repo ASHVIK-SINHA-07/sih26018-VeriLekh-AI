@@ -39,9 +39,44 @@ UPLOAD_ROOT = Path(os.environ.get("UPLOAD_ROOT", "/data")).resolve()
 # Land records mix scripts: Devanagari prose with Latin digits for survey,
 # khasra and khata numbers. Reading them in one pass performs badly, so each
 # script is read separately and the results merged by position on the page.
-DEVANAGARI_LANG = "hin"
+DEFAULT_LANG = "hin"
 NUMERIC_LANG = "eng"
 NUMERIC_WHITELIST = "0123456789/.-"
+
+# Languages this service is built with, and the script each is written in.
+#
+# Tesseract detects *script*, not language — it can tell Devanagari from
+# Bengali but not Hindi from Marathi, which share one script. So detection
+# picks the script and SCRIPT_DEFAULT picks the likeliest language for it;
+# a caller who knows better passes `language` explicitly and is obeyed.
+SUPPORTED_LANGS = {
+    "hin": "Devanagari",   # Hindi
+    "mar": "Devanagari",   # Marathi
+    "ben": "Bengali",      # Bengali
+    "tam": "Tamil",        # Tamil
+    "tel": "Telugu",       # Telugu
+    "guj": "Gujarati",     # Gujarati
+    "pan": "Gurmukhi",     # Punjabi
+    "kan": "Kannada",      # Kannada
+    "ori": "Oriya",        # Odia
+    "eng": "Latin",
+}
+
+SCRIPT_DEFAULT = {
+    "Devanagari": "hin",
+    "Bengali": "ben",
+    "Tamil": "tam",
+    "Telugu": "tel",
+    "Gujarati": "guj",
+    "Gurmukhi": "pan",
+    "Kannada": "kan",
+    "Oriya": "ori",
+    "Latin": "eng",
+}
+
+# Below this, script detection is guessing — fall back rather than switch the
+# recogniser to a language the page is probably not written in.
+MIN_SCRIPT_CONFIDENCE = 1.5
 
 # Two page-segmentation modes, merged.
 #
@@ -79,6 +114,9 @@ app = FastAPI(title="Land record OCR", version="1.0")
 
 class ExtractRequest(BaseModel):
     imagePath: str
+    # Optional. Omitted, the service detects the script and picks a language
+    # for it; an explicit value is always obeyed.
+    language: str | None = None
 
 
 def resolve(image_path: str) -> Path:
@@ -332,6 +370,32 @@ def health() -> dict:
     }
 
 
+def detect_language(page) -> tuple[str, str | None, float]:
+    """
+    Pick a recognition language for this page.
+
+    Returns (language, detected_script, confidence). Falls back to the default
+    when detection is unavailable or unsure — a wrong language reads far worse
+    than a merely non-ideal one, so low confidence must not cause a switch.
+    """
+    try:
+        osd = pytesseract.image_to_osd(page, output_type=Output.DICT)
+    except Exception:  # noqa: BLE001 — OSD fails on sparse pages; not fatal
+        log.info("script detection unavailable, using %s", DEFAULT_LANG)
+        return DEFAULT_LANG, None, 0.0
+
+    script = osd.get("script")
+    confidence = float(osd.get("script_conf", 0.0))
+
+    if confidence < MIN_SCRIPT_CONFIDENCE or script not in SCRIPT_DEFAULT:
+        log.info(
+            "script %s at confidence %.2f — keeping %s", script, confidence, DEFAULT_LANG
+        )
+        return DEFAULT_LANG, script, confidence
+
+    return SCRIPT_DEFAULT[script], script, confidence
+
+
 @app.post("/extract")
 def extract(request: ExtractRequest) -> dict:
     path = resolve(request.imagePath)
@@ -347,9 +411,22 @@ def extract(request: ExtractRequest) -> dict:
             status_code=422, detail=f"Unreadable file: {error}"
         ) from error
 
+    if request.language:
+        if request.language not in SUPPORTED_LANGS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported language {request.language!r}. "
+                       f"Available: {', '.join(sorted(SUPPORTED_LANGS))}",
+            )
+        lang, script, script_conf = request.language, None, 0.0
+    else:
+        lang, script, script_conf = detect_language(page)
+
+    log.info("reading %s as %s (script %s)", path.name, lang, script or "not detected")
+
     words: list[dict] = []
     for psm in PSM_MODES:
-        words += read_words(page, DEVANAGARI_LANG, psm)
+        words += read_words(page, lang, psm)
         words += read_words(
             page, NUMERIC_LANG, f"{psm} -c tessedit_char_whitelist={NUMERIC_WHITELIST}"
         )
@@ -360,6 +437,8 @@ def extract(request: ExtractRequest) -> dict:
 
     return {
         "rawText": "\n".join(block["text"] for block in blocks),
-        "language": "hi",
+        "language": lang,
+        "script": script,
+        "scriptConfidence": round(script_conf, 2),
         "blocks": blocks,
     }

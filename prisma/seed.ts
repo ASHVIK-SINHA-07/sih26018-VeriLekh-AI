@@ -15,12 +15,14 @@
  */
 import { entryHash } from "@/lib/provenance";
 import { scoreRecord } from "@/lib/quality";
+import { gatherEvidence } from "@/lib/evidence";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { PrismaClient, type Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { SEED_DOCS, type SeedDoc } from "./seed-data.ts";
 import { SEED_AUTHORITATIVE } from "./seed-authoritative.ts";
+import { SEED_CHAINS } from "./seed-chains.ts";
 import { renderKhatauniScan } from "./seed-scan.ts";
 
 const db = new PrismaClient();
@@ -92,12 +94,20 @@ async function writeScan(doc: SeedDoc, scanDir: string): Promise<string> {
 
 async function seedDocuments(userIds: Record<"ADMIN" | "VERIFIER", string>) {
   // Wipe in FK order — children before parents.
+  await db.mutation.deleteMany();
+  await db.parcel.deleteMany();
   await db.authoritativeRecord.deleteMany();
   await db.learnedCorrection.deleteMany();
   await db.auditLog.deleteMany();
   await db.validationResult.deleteMany();
   await db.extractedRecord.deleteMany();
   await db.document.deleteMany();
+
+  // The evidence a record is judged against goes in first. Records are scored
+  // in pass 2 against other systems and their ownership history, so both must
+  // already exist — scoring before them produced a stored number that
+  // disagreed with the one on screen.
+  await seedEvidence();
 
   const scanDir = path.join(UPLOAD_DIR, SCAN_SUBDIR);
   await rm(scanDir, { recursive: true, force: true });
@@ -191,10 +201,12 @@ async function seedDocuments(userIds: Record<"ADMIN" | "VERIFIER", string>) {
     // Scored here rather than in pass 1: the score weighs validation findings,
     // and those are only known now.
     if (doc.fields) {
+      const fields = { ...doc.fields, ulpin: doc.ulpin ?? null };
+      const evidence = await gatherEvidence(fields);
       const quality = scoreRecord({
-        fields: { ...doc.fields, ulpin: doc.ulpin ?? null },
+        fields,
         confidence: doc.confidence ?? {},
-        issues: doc.validation.issues,
+        issues: [...doc.validation.issues, ...evidence.issues],
       });
       await db.extractedRecord.update({
         where: { documentId },
@@ -204,6 +216,62 @@ async function seedDocuments(userIds: Record<"ADMIN" | "VERIFIER", string>) {
   }
 
   return idByKey;
+}
+
+/**
+ * Simulated external sources and synthetic ownership chains.
+ *
+ * Three systems hold every parcel and they do not always agree; the mutation
+ * register behind a parcel says how its owner came to own it. Both are seeded
+ * with the defects a government quality evaluation actually found, so the
+ * reconciliation and chain panels have something real to catch on camera.
+ */
+async function seedEvidence() {
+  await db.authoritativeRecord.createMany({
+    data: SEED_AUTHORITATIVE.map((r) => ({
+      source: r.source,
+      khasraNumber: r.khasraNumber,
+      village: r.village,
+      district: r.district,
+      ownerName: r.ownerName ?? null,
+      khataNumber: r.khataNumber ?? null,
+      plotArea: r.plotArea ?? null,
+      landClassification: r.landClassification ?? null,
+      asOf: new Date(Date.now() - r.asOfYearsAgo * 365.25 * 24 * 60 * 60 * 1000),
+    })),
+  });
+
+  for (const chain of SEED_CHAINS) {
+    const parcel = await db.parcel.create({
+      data: {
+        khasraNumber: chain.khasraNumber,
+        village: chain.village,
+        district: chain.district,
+        tehsil: chain.tehsil,
+      },
+    });
+    // Entries are written in register order; a correction points back at the
+    // row it replaces by id, so ids are resolved as the rows are created.
+    const idByKey = new Map<string, string>();
+    for (const [i, m] of chain.mutations.entries()) {
+      const row = await db.mutation.create({
+        data: {
+          parcelId: parcel.id,
+          seq: i + 1,
+          mutationNumber: m.number ?? null,
+          type: m.type,
+          fromOwner: m.from ?? null,
+          toOwner: m.to,
+          share: m.share,
+          effectiveDate: new Date(`${m.effective}T00:00:00Z`),
+          recordedAt: new Date(`${m.recorded}T00:00:00Z`),
+          orderReference: m.order ?? null,
+          supersedesId: m.supersedes ? (idByKey.get(m.supersedes) ?? null) : null,
+        },
+      });
+      idByKey.set(m.key, row.id);
+    }
+  }
 }
 
 async function main() {
@@ -238,25 +306,6 @@ async function main() {
     data: LEARNED.map((c) => ({ ...c, applied: Math.max(0, c.occurrences - 1) })),
   });
 
-  /* ------------------------------------------- simulated external sources
-   * Three systems hold every parcel and they do not always agree. Seeded with
-   * the defects a government quality evaluation actually found: an area
-   * mismatch, and a registered sale the Record of Rights never caught up with.
-   */
-  await db.authoritativeRecord.createMany({
-    data: SEED_AUTHORITATIVE.map((r) => ({
-      source: r.source,
-      khasraNumber: r.khasraNumber,
-      village: r.village,
-      district: r.district,
-      ownerName: r.ownerName ?? null,
-      khataNumber: r.khataNumber ?? null,
-      plotArea: r.plotArea ?? null,
-      landClassification: r.landClassification ?? null,
-      asOf: new Date(Date.now() - r.asOfYearsAgo * 365.25 * 24 * 60 * 60 * 1000),
-    })),
-  });
-
   console.log(`\nSeeded ${SEED_DOCS.length} synthetic documents:`);
   for (const c of counts.sort((a, b) => a.status.localeCompare(b.status))) {
     console.log(`  ${c.status.padEnd(11)} ${c._count}`);
@@ -275,6 +324,12 @@ async function main() {
   console.log(`Cross-source conflicts planted (${plantedConflicts.length}):`);
   for (const r of plantedConflicts) {
     console.log(`  khasra ${r.khasraNumber.padEnd(7)} ${r.source.padEnd(13)} ${r.note?.replace("PLANTED — ", "")}`);
+  }
+
+  const entries = SEED_CHAINS.reduce((n, c) => n + c.mutations.length, 0);
+  console.log(`\nSeeded ${SEED_CHAINS.length} ownership chains (${entries} mutation entries, 2005–2025):`);
+  for (const c of SEED_CHAINS) {
+    console.log(`  khasra ${c.khasraNumber.padEnd(7)} ${c.district.padEnd(11)} ${c.note.replace("PLANTED — ", "")}`);
   }
 
   console.log("\nAll data is synthetic. Local development only.\n");

@@ -62,6 +62,12 @@ const PENALTY: Record<IssueKind, number> = {
   // record may simply be ahead of it — but it still needs a person.
   sourceConflict: 50,
   sourceStale: 25,
+  // A broken chain of title — land sold twice, sold by a dead man, or shared
+  // out beyond the whole — means ownership itself is in doubt. That is the
+  // heaviest finding after a duplicate parcel. A backdated entry or an unlisted
+  // co-owner needs a person but may have an innocent explanation.
+  chainDefect: 60,
+  chainWarning: 20,
   ownerConflict: 40,
   ownerVariant: 15,
   missing: 20,
@@ -211,8 +217,8 @@ export function scoreRecord({ fields, confidence, issues }: QualityInput): Quali
         score: consistency,
         weight: WEIGHTS.consistency,
         detail: counted.length === 0
-          ? "no contradictions against records already on file"
-          : `${counted.length} finding${counted.length === 1 ? "" : "s"} against records already on file`,
+          ? "nothing on file contradicts this record"
+          : `${counted.length} contradiction${counted.length === 1 ? "" : "s"} — with other records, other systems or the ownership history`,
       },
     },
     deductions,

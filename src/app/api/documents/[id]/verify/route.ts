@@ -5,6 +5,7 @@ import { toJson } from "@/lib/json";
 import { learnCorrection } from "@/lib/learning";
 import { appendAudit } from "@/lib/audit";
 import { scoreRecord } from "@/lib/quality";
+import { gatherEvidence } from "@/lib/evidence";
 import { validateRecord, type ExistingRecord } from "@/lib/validate";
 import { generateUlpin } from "@/lib/ulpin";
 import {
@@ -132,8 +133,9 @@ export async function PUT(
 
   // A record the officer has corrected is scored again — the number shown to
   // the next reader must describe the record as it now stands.
+  const evidence = await gatherEvidence(corrected);
   const quality = scoreRecord({
-    fields: corrected, confidence, issues: validation.issues,
+    fields: corrected, confidence, issues: [...validation.issues, ...evidence.issues],
   });
 
   // An interactive transaction, not an array of promises: audit entries are

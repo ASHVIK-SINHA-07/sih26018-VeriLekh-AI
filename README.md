@@ -350,6 +350,7 @@ Human verification workflow                      ██████████ 
 Correction memory — learns from every fix        ██████████  complete
 Data quality score per record                    ██████████  complete
 Cross-source verification — RoR, registry, map   ██████████  complete
+Chain of title — ownership replayed 2005–2025    ██████████  complete
 Append-only audit trail, hash-chained            ██████████  complete
 Role-based access control                        ██████████  complete
 Dashboards and reporting                         ██████████  complete
@@ -389,7 +390,7 @@ script's output, the script is right.
 ### Partially built
 
 ```
-Language coverage — Hindi/Devanagari only        ████░░░░░░  one of many
+Language coverage — 10 languages installed       ███████░░░  labels: Hindi, Marathi
 Registry integration — contract built, simulated ████░░░░░░  no live endpoint
 ```
 

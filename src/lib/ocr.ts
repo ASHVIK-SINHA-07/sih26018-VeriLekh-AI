@@ -171,7 +171,17 @@ function mockOcr(imagePath: string): OcrResult {
  */
 const OCR_TIMEOUT_MS = 120_000;
 
-export async function runOcr(imagePath: string): Promise<OcrResult> {
+/**
+ * Read a page.
+ *
+ * `language` is optional. Omitted, the service detects the script and picks a
+ * language for it — right for a mixed intake tray. Passed, it is obeyed, which
+ * is what a district office wants when every page in the batch is the same.
+ */
+export async function runOcr(
+  imagePath: string,
+  language?: string,
+): Promise<OcrResult> {
   if (isMockOcr()) {
     return mockOcr(imagePath);
   }
@@ -183,7 +193,7 @@ export async function runOcr(imagePath: string): Promise<OcrResult> {
     response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ imagePath }),
+      body: JSON.stringify(language ? { imagePath, language } : { imagePath }),
       signal: AbortSignal.timeout(OCR_TIMEOUT_MS),
     });
   } catch (error) {

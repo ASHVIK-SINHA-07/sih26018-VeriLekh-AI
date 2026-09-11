@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { CAN_WRITE, requireRole } from "@/lib/api-auth";
 import { toJson } from "@/lib/json";
 import { learnCorrection } from "@/lib/learning";
+import { appendAudit } from "@/lib/audit";
+import { scoreRecord } from "@/lib/quality";
 import { validateRecord, type ExistingRecord } from "@/lib/validate";
 import { generateUlpin } from "@/lib/ulpin";
 import {
@@ -128,8 +130,17 @@ export async function PUT(
   // Mint a ULPIN only on approval, and only if the record has none yet.
   const ulpin = approving ? (record.ulpin ?? generateUlpin()) : record.ulpin;
 
-  await db.$transaction([
-    db.extractedRecord.update({
+  // A record the officer has corrected is scored again — the number shown to
+  // the next reader must describe the record as it now stands.
+  const quality = scoreRecord({
+    fields: corrected, confidence, issues: validation.issues,
+  });
+
+  // An interactive transaction, not an array of promises: audit entries are
+  // hash-chained, so each one's hash depends on the one written before it and
+  // they must be appended in order.
+  await db.$transaction(async (tx) => {
+    await tx.extractedRecord.update({
       where: { documentId: id },
       data: {
         ownerName: corrected.ownerName, surveyNumber: corrected.surveyNumber,
@@ -138,10 +149,12 @@ export async function PUT(
         tehsil: corrected.tehsil, district: corrected.district,
         landClassification: corrected.landClassification,
         confidence: toJson(confidence),
+        qualityScore: quality.score,
         ulpin,
       },
-    }),
-    db.validationResult.upsert({
+    });
+
+    await tx.validationResult.upsert({
       where: { documentId: id },
       update: {
         status: validation.status,
@@ -154,37 +167,33 @@ export async function PUT(
         issues: toJson(validation.issues),
         duplicateOfId: validation.duplicateOf,
       },
-    }),
-    db.document.update({ where: { id }, data: { status } }),
+    });
 
-    // One row per corrected field — an auditor should see exactly what
-    // changed, not a single opaque "edited" entry.
-    ...edits.map((edit) =>
-      db.auditLog.create({
-        data: {
-          documentId: id,
-          actorId: guard.actor.id,
-          action: "EDIT_FIELD",
-          before: toJson({ field: FIELD_LABELS[edit.field], value: edit.before }),
-          after: toJson({ field: FIELD_LABELS[edit.field], value: edit.after }),
-        },
-      }),
-    ),
+    await tx.document.update({ where: { id }, data: { status } });
 
-    db.auditLog.create({
-      data: {
+    // One entry per corrected field, then the decision itself — an auditor
+    // should see exactly what changed, not a single opaque "edited" record.
+    await appendAudit(tx, [
+      ...edits.map((edit) => ({
         documentId: id,
         actorId: guard.actor.id,
-        action: approving ? "APPROVE" : "REJECT",
-        before: toJson({ status: document.status }),
-        after: toJson({
+        action: "EDIT_FIELD" as const,
+        before: { field: FIELD_LABELS[edit.field], value: edit.before },
+        after: { field: FIELD_LABELS[edit.field], value: edit.after },
+      })),
+      {
+        documentId: id,
+        actorId: guard.actor.id,
+        action: approving ? ("APPROVE" as const) : ("REJECT" as const),
+        before: { status: document.status },
+        after: {
           status,
           ...(approving ? { ulpin } : {}),
           fieldsCorrected: edits.length,
-        }),
+        },
       },
-    }),
-  ]);
+    ]);
+  });
 
   // Remember every substitution the officer made, so the pipeline stops
   // repeating that misreading on the next page that carries it. Deliberately

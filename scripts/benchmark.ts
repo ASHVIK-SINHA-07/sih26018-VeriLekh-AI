@@ -27,7 +27,6 @@
 import { writeFileSync } from "node:fs";
 import { runOcr } from "@/lib/ocr";
 import { extractFields } from "@/lib/extract";
-import { db } from "@/lib/db";
 import { learnable } from "@/lib/learning";
 import { LOW_CONFIDENCE_THRESHOLD, type ExtractedFieldName } from "@/types";
 import { SEED_DOCS } from "../prisma/seed-data.ts";
@@ -105,9 +104,14 @@ const half = Math.floor(docs.length / 2);
 const train = docs.slice(0, half);
 const test = docs.slice(half);
 
-// Learn only from the training documents. The store is cleared first so a
-// previous run — or the seeded demo corrections — cannot leak into the result.
-await db.learnedCorrection.deleteMany({});
+// Learn only from the training documents, into a table held in memory.
+//
+// Deliberately NOT the LearnedCorrection table. Measuring against the live
+// store would mean clearing it first, and that would silently destroy the
+// demo corrections the seed installs — a benchmark must never be able to
+// damage the system it measures. The substitution rule is the same one
+// learning.ts applies: keyed on field plus the exact wrong value.
+const table = new Map<string, string>();
 let taught = 0;
 for (const d of train) {
   const r = reads.find((x) => x.key === d.key)!;
@@ -116,16 +120,10 @@ for (const d of train) {
     const got = r.fields[f];
     if (truth == null || got == null || got === truth) continue;
     if (!learnable(got, truth)) continue;
-    await db.learnedCorrection.upsert({
-      where: { field_wrongValue: { field: f, wrongValue: key(got) } },
-      update: { rightValue: truth, occurrences: { increment: 1 } },
-      create: { field: f, wrongValue: key(got), rightValue: truth },
-    });
+    table.set(`${f}\u0000${key(got)}`, truth);
     taught++;
   }
 }
-const learned = await db.learnedCorrection.findMany();
-const table = new Map(learned.map((c) => [`${c.field}\u0000${c.wrongValue}`, c.rightValue]));
 
 let baseN = 0, baseOk = 0, afterOk = 0;
 const changes: string[] = [];
@@ -145,12 +143,11 @@ for (const d of test) {
     if (was && !now) changes.push(`  - ${d.key} ${f}: REGRESSED "${got}" -> "${fixed}"`);
   }
 }
-await db.learnedCorrection.deleteMany({});
 
 console.log("\n\nCORRECTION MEMORY — HELD OUT");
 console.log(`  split               train ${train.length} documents / test ${test.length} documents (by document, no page appears in both)`);
 console.log(`  officers corrected  ${taught} fields on the training half`);
-console.log(`  distinct entries    ${learned.length}`);
+console.log(`  distinct entries    ${table.size}`);
 console.log(`  held-out before     ${baseOk}/${baseN}  ${pct(baseOk, baseN)}%`);
 console.log(`  held-out after      ${afterOk}/${baseN}  ${pct(afterOk, baseN)}%`);
 console.log(`  net                 ${afterOk - baseOk >= 0 ? "+" : ""}${afterOk - baseOk} fields`);
@@ -169,7 +166,7 @@ if (process.argv.includes("--json")) {
     },
     correctionMemory: {
       trainDocuments: train.length, testDocuments: test.length,
-      fieldsCorrectedInTraining: taught, distinctEntries: learned.length,
+      fieldsCorrectedInTraining: taught, distinctEntries: table.size,
       heldOutFields: baseN, beforeExact: baseOk, afterExact: afterOk,
       beforePct: pct(baseOk, baseN), afterPct: pct(afterOk, baseN),
       netFields: afterOk - baseOk,
@@ -179,4 +176,3 @@ if (process.argv.includes("--json")) {
   console.log("\nwrote benchmark-results.json");
 }
 
-await db.$disconnect();

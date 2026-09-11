@@ -348,7 +348,9 @@ Per-field confidence scoring                     ██████████ 
 Validation — missing, range, duplicate, conflict ██████████  complete
 Human verification workflow                      ██████████  complete
 Correction memory — learns from every fix        ██████████  complete
-Append-only audit trail                          ██████████  complete
+Data quality score per record                    ██████████  complete
+Cross-source verification — RoR, registry, map   ██████████  complete
+Append-only audit trail, hash-chained            ██████████  complete
 Role-based access control                        ██████████  complete
 Dashboards and reporting                         ██████████  complete
 REST API for onward integration                  ██████████  complete

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/lib/db";
+import { appendAudit } from "@/lib/audit";
 import { CAN_WRITE, requireRole, requireSession } from "@/lib/api-auth";
 import { saveUpload } from "@/lib/files";
 import {
@@ -113,14 +114,14 @@ export async function POST(request: NextRequest) {
   await db.document.update({ where: { id: document.id }, data: { filePath } });
 
   // Every data-changing action writes an audit row — CLAUDE.md, doc 03.
-  await db.auditLog.create({
-    data: {
-      documentId: document.id,
-      actorId: guard.actor.id,
-      action: "UPLOAD",
-      after: { filename: file.name, size: file.size, mimeType: file.type },
-    },
-  });
+  // Through appendAudit so the entry is hash-chained; a row written directly
+  // would carry no link and verification would report it as unchained.
+  await appendAudit(db, [{
+    documentId: document.id,
+    actorId: guard.actor.id,
+    action: "UPLOAD",
+    after: { filename: file.name, size: file.size, mimeType: file.type },
+  }]);
 
   const body: UploadResponse = { documentId: document.id, status: "UPLOADED" };
   return NextResponse.json(body, { status: 201 });

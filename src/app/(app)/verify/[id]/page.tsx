@@ -4,6 +4,11 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fromJson } from "@/lib/json";
 import { AuditTrail } from "@/components/audit-trail";
+import { QualityPanel } from "@/components/quality-panel";
+import { ReconciliationPanel } from "@/components/reconciliation-panel";
+import { reconcile, reconciliationIssues, type AuthoritativeRow, type SourceName } from "@/lib/reconcile";
+import { scoreRecord } from "@/lib/quality";
+import { verifyDocumentChain } from "@/lib/audit";
 import { VerifyClient } from "./verify-client";
 import type {
   AuditLogEntry, ConfidenceMap, ExtractedFields, ValidationIssue, ValidationSummary,
@@ -92,6 +97,40 @@ export default async function VerifyDetailPage({
     timestamp: entry.timestamp.toISOString(),
   }));
 
+  // Scored on read rather than trusted from the column: the stored number is
+  // for ranking on the dashboard, but the reviewer looking at this page should
+  // see a score derived from exactly the record and findings in front of them.
+  const chain = await verifyDocumentChain(document.id);
+
+  // What the other government systems hold for this parcel. Narrowed by
+  // khasra first so a district-wide scan never loads every row.
+  const sourceRows = fields.khasraNumber
+    ? await db.authoritativeRecord.findMany({ where: { khasraNumber: fields.khasraNumber } })
+    : [];
+  const reconciliation = reconcile({
+    fields,
+    sources: sourceRows.map((r): AuthoritativeRow => ({
+      source: r.source as SourceName,
+      khasraNumber: r.khasraNumber,
+      village: r.village,
+      district: r.district,
+      ownerName: r.ownerName,
+      khataNumber: r.khataNumber,
+      plotArea: r.plotArea,
+      landClassification: r.landClassification,
+      asOf: r.asOf,
+    })),
+  });
+
+  // Scored last, against both our own findings and what other systems hold —
+  // a record the rest of government disagrees with is not a clean record,
+  // and the two panels must not tell the reviewer different stories.
+  const quality = scoreRecord({
+    fields,
+    confidence: fromJson<ConfidenceMap>(record.confidence, {}),
+    issues: [...(validation?.issues ?? []), ...reconciliationIssues(reconciliation)],
+  });
+
   return (
     <div>
     <VerifyClient
@@ -104,7 +143,11 @@ export default async function VerifyDetailPage({
       validation={validation}
       duplicateOf={duplicateOf}
     />
-    <div className="px-4 pb-4 sm:px-7 sm:pb-7"><AuditTrail entries={auditEntries} /></div>
+    <div className="space-y-4 px-4 pb-4 sm:px-7 sm:pb-7">
+      <QualityPanel quality={quality} chain={chain} />
+      <ReconciliationPanel result={reconciliation} />
+      <AuditTrail entries={auditEntries} />
+    </div>
     </div>
   );
 }

@@ -89,9 +89,29 @@ export type ConfidenceMap = Partial<Record<ExtractedFieldName, number>>;
 /** Below this, a field is treated as low confidence and flagged for review. */
 export const LOW_CONFIDENCE_THRESHOLD = 0.75;
 
+/**
+ * What kind of problem an issue represents.
+ *
+ * Optional so validation results stored before this existed still parse. It
+ * exists so the quality score can weigh findings by seriousness — a duplicate
+ * parcel and a low-confidence character are not the same kind of problem —
+ * and so the reviewer's screen can style them differently.
+ */
+export type IssueKind =
+  | "missing"        // a required field was not extracted at all
+  | "range"          // a value is outside what is physically plausible
+  | "confidence"     // the reader was not sure of the characters
+  | "duplicate"      // this parcel is already on file
+  | "ownerConflict"  // same holding, an unrelated owner name
+  | "ownerVariant"   // same holding, a name that differs by a likely misread
+  | "sourceConflict" // another government system holds a different value
+  | "sourceStale"    // a source has not been updated in years
+  | "learned";       // informational: a remembered correction was applied
+
 export interface ValidationIssue {
   field: string;
   issue: string;
+  kind?: IssueKind;
 }
 
 export interface ValidationSummary {
@@ -158,6 +178,10 @@ export interface VerifyResponse {
 export interface DashboardStats {
   totalProcessed: number;
   avgAccuracy: number;
+  /** Mean 0-100 data quality score across scored records. */
+  avgQuality: number;
+  /** How many scored records fall in the poor band — the triage number. */
+  lowQuality: number;
   pendingVerification: number;
   flagged: number;
   byDistrict: { district: string; count: number }[];

@@ -91,6 +91,10 @@ model ExtractedRecord {
   landClassification String?
   ulpin              String?  @unique
   confidence         Json // { fieldName: 0.0-1.0 }
+  /// 0-100 data quality score. Completeness, confidence and consistency with
+  /// records already on file, weighted 30/30/40. Stored so the dashboard can
+  /// rank and aggregate without recomputing; the breakdown is derived on read.
+  qualityScore       Int?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
@@ -159,6 +163,51 @@ model LearnedCorrection {
   @@index([field])
 }
 
+/// Which government system a record came from.
+///
+/// The problem statement asks for verification against existing land-record
+/// databases, and the documented failure in the real system is that these
+/// three disagree with one another: the textual Record of Rights, the
+/// registration record of the last transaction, and the spatial/cadastral
+/// record of the parcel's extent. Modelling them as separate sources — each
+/// with its own "as of" date — is what makes a contradiction visible.
+enum AuthoritativeSource {
+  ROR           // Record of Rights (Bhulekh / state LRMS)
+  REGISTRATION  // sub-registrar's record of the last transaction (NGDRS)
+  CADASTRAL     // parcel geometry and measured extent (BhuNaksha)
+}
+
+/// A parcel as one authoritative system currently holds it.
+///
+/// SIMULATED. Every row is synthetic and clearly labelled as such in the UI
+/// and the API. Nothing here contacts a government system; this models the
+/// shape a real integration would return so reconciliation can be built and
+/// demonstrated against it.
+model AuthoritativeRecord {
+  id                 String              @id @default(cuid())
+  source             AuthoritativeSource
+
+  /// Parcel identity, as the source knows it.
+  khasraNumber       String
+  village            String
+  district           String
+
+  /// Whatever fields that source carries. A cadastral record has an extent
+  /// but no owner; a registration record has parties but no land class.
+  ownerName          String?
+  khataNumber        String?
+  plotArea           String?
+  landClassification String?
+
+  /// When that system last updated this parcel. A stale date is itself a
+  /// finding — an un-updated mutation is the single most common real defect.
+  asOf               DateTime
+
+  createdAt          DateTime            @default(now())
+
+  @@index([khasraNumber, village, district])
+}
+
 model AuditLog {
   id         String   @id @default(cuid())
   document   Document @relation(fields: [documentId], references: [id])
@@ -169,4 +218,15 @@ model AuditLog {
   before     Json?
   after      Json?
   timestamp  DateTime @default(now())
+
+  /// Position in this document's provenance chain, starting at 0.
+  seq        Int      @default(0)
+  /// SHA-256 over this entry's content plus the previous entry's hash.
+  /// Altering, deleting or inserting an entry breaks every link after it.
+  hash       String?
+  /// The hash this entry links back to; null for the first entry of a chain.
+  prevHash   String?
+
+  @@unique([documentId, seq])
+  @@index([documentId, seq])
 }

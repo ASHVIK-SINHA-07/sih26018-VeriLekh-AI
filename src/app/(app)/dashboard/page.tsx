@@ -8,7 +8,7 @@ import { ScreenHeader } from "@/components/screen-header";
 import { StatCard } from "@/components/stat-card";
 import { Panel } from "@/components/panel";
 import { EmptyState } from "@/components/empty-state";
-import { asCount, asPercent } from "@/lib/format";
+import { asCount } from "@/lib/format";
 import type {
   ConfidenceMap, ExtractedFields, ValidationIssue,
 } from "@/types";
@@ -88,9 +88,13 @@ export default async function DashboardPage({
             hint="Read and checked by the pipeline"
           />
           <StatCard
-            label="Extraction accuracy"
-            value={asPercent(stats.avgAccuracy)}
-            hint="Mean confidence across all fields"
+            label="Mean data quality"
+            value={asCount(stats.avgQuality)}
+            hint={
+              stats.lowQuality === 0
+                ? "Completeness, confidence and consistency"
+                : `${stats.lowQuality} record${stats.lowQuality === 1 ? "" : "s"} scoring poorly`
+            }
           />
           <StatCard
             label="Pending verification"

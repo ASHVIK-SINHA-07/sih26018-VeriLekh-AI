@@ -15,6 +15,8 @@
  * validation engine catching them on screen (docs/01_PRD.md success criteria).
  */
 
+import type { IssueKind } from "@/types";
+
 export type SeedStatus =
   | "UPLOADED"
   | "PROCESSING"
@@ -52,7 +54,7 @@ export interface SeedDoc {
   ulpin: string | null;
   validation: {
     status: SeedValidationStatus;
-    issues: { field: string; issue: string }[];
+    issues: { field: string; issue: string; kind?: IssueKind }[];
     duplicateOfKey?: string;
   } | null;
   /** Audit entries, oldest first. Every document has at least an UPLOAD. */
@@ -226,7 +228,7 @@ export const SEED_DOCS: SeedDoc[] = [
       status: "DUPLICATE",
       duplicateOfKey: "varanasi-0412",
       issues: [
-        { field: "khasraNumber", issue: "Duplicate parcel — khasra 142/3 in रामपुर खुर्द is already recorded under ULPIN UP62B4F19C83A7" },
+        { field: "khasraNumber", kind: "duplicate", issue: "Duplicate parcel — khasra 142/3 in रामपुर खुर्द is already recorded under ULPIN UP62B4F19C83A7" },
       ],
     },
     audit: [{ action: "UPLOAD", daysAgo: 3, by: "VERIFIER" }],
@@ -246,8 +248,8 @@ export const SEED_DOCS: SeedDoc[] = [
     validation: {
       status: "FLAGGED",
       issues: [
-        { field: "ownerName", issue: "Owner name conflicts with the existing record for khata 214 (सुनीता देवी मिश्रा)" },
-        { field: "ownerName", issue: "Low confidence — 64%" },
+        { field: "ownerName", kind: "ownerConflict", issue: "Owner name conflicts with the existing record for khata 214 (सुनीता देवी मिश्रा)" },
+        { field: "ownerName", kind: "confidence", issue: "Low confidence — 64%" },
       ],
     },
     audit: [{ action: "UPLOAD", daysAgo: 3, by: "VERIFIER" }],
@@ -266,7 +268,7 @@ export const SEED_DOCS: SeedDoc[] = [
     ulpin: null,
     validation: {
       status: "FLAGGED",
-      issues: [{ field: "khataNumber", issue: "Khata number is missing" }],
+      issues: [{ field: "khataNumber", kind: "missing", issue: "Khata number is missing" }],
     },
     audit: [{ action: "UPLOAD", daysAgo: 2, by: "VERIFIER" }],
     note: "PLANTED #3 — missing required field.",
@@ -289,10 +291,10 @@ export const SEED_DOCS: SeedDoc[] = [
     validation: {
       status: "FLAGGED",
       issues: [
-        { field: "ownerName", issue: "Low confidence — 58%" },
-        { field: "khasraNumber", issue: "Low confidence — 61%" },
-        { field: "plotArea", issue: "Low confidence — 66%" },
-        { field: "landClassification", issue: "Low confidence — 71%" },
+        { field: "ownerName", kind: "confidence", issue: "Low confidence — 58%" },
+        { field: "khasraNumber", kind: "confidence", issue: "Low confidence — 61%" },
+        { field: "plotArea", kind: "confidence", issue: "Low confidence — 66%" },
+        { field: "landClassification", kind: "confidence", issue: "Low confidence — 71%" },
       ],
     },
     audit: [{ action: "UPLOAD", daysAgo: 1, by: "VERIFIER" }],
@@ -314,8 +316,8 @@ export const SEED_DOCS: SeedDoc[] = [
     validation: {
       status: "FLAGGED",
       issues: [
-        { field: "khataNumber", issue: "Low confidence — 68%" },
-        { field: "plotArea", issue: "Low confidence — 73%" },
+        { field: "khataNumber", kind: "confidence", issue: "Low confidence — 68%" },
+        { field: "plotArea", kind: "confidence", issue: "Low confidence — 73%" },
       ],
     },
     audit: [{ action: "UPLOAD", daysAgo: 1, by: "VERIFIER" }],
@@ -334,8 +336,8 @@ export const SEED_DOCS: SeedDoc[] = [
     validation: {
       status: "FLAGGED",
       issues: [
-        { field: "surveyNumber", issue: "Low confidence — 70%" },
-        { field: "landClassification", issue: "Low confidence — 74%" },
+        { field: "surveyNumber", kind: "confidence", issue: "Low confidence — 70%" },
+        { field: "landClassification", kind: "confidence", issue: "Low confidence — 74%" },
       ],
     },
     audit: [{ action: "UPLOAD", daysAgo: 0, by: "ADMIN" }],
@@ -388,7 +390,7 @@ export const SEED_DOCS: SeedDoc[] = [
     ulpin: null,
     validation: {
       status: "FLAGGED",
-      issues: [{ field: "ownerName", issue: "Scan quality too poor to extract reliably" }],
+      issues: [{ field: "ownerName", kind: "range", issue: "Scan quality too poor to extract reliably" }],
     },
     audit: [
       { action: "UPLOAD", daysAgo: 6, by: "VERIFIER" },

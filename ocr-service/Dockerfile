@@ -14,11 +14,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         tesseract-ocr \
         tesseract-ocr-hin \
         tesseract-ocr-eng \
+        tesseract-ocr-mar \
+        tesseract-ocr-ben \
+        tesseract-ocr-tam \
+        tesseract-ocr-tel \
+        tesseract-ocr-guj \
+        tesseract-ocr-pan \
+        tesseract-ocr-kan \
+        tesseract-ocr-ori \
         libcairo2 \
         poppler-utils \
         fontconfig \
         fonts-noto-core \
         fonts-deva \
+        fonts-beng \
+        fonts-taml \
+        fonts-telu \
+        fonts-gujr \
+        fonts-guru \
+        fonts-knda \
+        fonts-orya \
         fonts-dejavu-core \
     && fc-cache -f \
     && rm -rf /var/lib/apt/lists/*

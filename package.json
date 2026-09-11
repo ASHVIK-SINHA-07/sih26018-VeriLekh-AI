@@ -46,6 +46,6 @@
     "deepmerge-ts": "^8.0.0"
   },
   "prisma": {
-    "seed": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON prisma/seed.ts"
+    "seed": "node --no-warnings=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/register-hooks.mjs prisma/seed.ts"
   }
 }

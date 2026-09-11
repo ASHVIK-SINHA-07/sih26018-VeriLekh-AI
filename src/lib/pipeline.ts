@@ -3,6 +3,7 @@ import { toJson } from "@/lib/json";
 import { runOcr } from "@/lib/ocr";
 import { extractFields } from "@/lib/extract";
 import { applyLearnedCorrections } from "@/lib/learning";
+import { scoreRecord } from "@/lib/quality";
 import { validateRecord, type ExistingRecord } from "@/lib/validate";
 import type { DocumentStatus, ExtractResponse } from "@/types";
 
@@ -64,12 +65,17 @@ export async function runExtraction(documentId: string): Promise<ExtractResponse
   const status: DocumentStatus =
     validation.status === "PASS" ? "PENDING" : "FLAGGED";
 
+  // Scored after the learned corrections and the validation findings are in,
+  // so the number reflects the record a reviewer will actually see.
+  const quality = scoreRecord({ fields, confidence, issues: validation.issues });
+
   const recordData = {
     ownerName: fields.ownerName, surveyNumber: fields.surveyNumber,
     khasraNumber: fields.khasraNumber, khataNumber: fields.khataNumber,
     plotArea: fields.plotArea, village: fields.village, tehsil: fields.tehsil,
     district: fields.district, landClassification: fields.landClassification,
     confidence,
+    qualityScore: quality.score,
   };
 
   await db.$transaction([

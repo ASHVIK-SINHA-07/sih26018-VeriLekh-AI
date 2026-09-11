@@ -13,11 +13,14 @@
  * are package or relative-with-extension only — the `@/*` alias is a tsconfig
  * feature Node does not resolve.
  */
+import { entryHash } from "@/lib/provenance";
+import { scoreRecord } from "@/lib/quality";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { PrismaClient, type Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { SEED_DOCS, type SeedDoc } from "./seed-data.ts";
+import { SEED_AUTHORITATIVE } from "./seed-authoritative.ts";
 import { renderKhatauniScan } from "./seed-scan.ts";
 
 const db = new PrismaClient();
@@ -89,6 +92,7 @@ async function writeScan(doc: SeedDoc, scanDir: string): Promise<string> {
 
 async function seedDocuments(userIds: Record<"ADMIN" | "VERIFIER", string>) {
   // Wipe in FK order — children before parents.
+  await db.authoritativeRecord.deleteMany();
   await db.learnedCorrection.deleteMany();
   await db.auditLog.deleteMany();
   await db.validationResult.deleteMany();
@@ -131,15 +135,38 @@ async function seedDocuments(userIds: Record<"ADMIN" | "VERIFIER", string>) {
       });
     }
 
+    // Chained by hand rather than through appendAudit, because seeded entries
+    // carry backdated timestamps and appendAudit stamps them with now() — the
+    // hash covers the timestamp, so the two must agree or the seeded chain
+    // would fail its own verification.
+    let prevHash: string | null = null;
+    let seq = 0;
     for (const entry of doc.audit) {
+      const timestamp = daysAgo(entry.daysAgo);
+      const hash = entryHash(
+        {
+          documentId: row.id,
+          actorId: userIds[entry.by],
+          action: entry.action,
+          before: null,
+          after: null,
+          timestamp,
+        },
+        prevHash,
+      );
       await db.auditLog.create({
         data: {
           documentId: row.id,
           actorId: userIds[entry.by],
           action: entry.action,
-          timestamp: daysAgo(entry.daysAgo),
+          timestamp,
+          seq,
+          hash,
+          prevHash,
         },
       });
+      prevHash = hash;
+      seq += 1;
     }
   }
 
@@ -160,6 +187,20 @@ async function seedDocuments(userIds: Record<"ADMIN" | "VERIFIER", string>) {
         createdAt: daysAgo(doc.daysAgo),
       },
     });
+
+    // Scored here rather than in pass 1: the score weighs validation findings,
+    // and those are only known now.
+    if (doc.fields) {
+      const quality = scoreRecord({
+        fields: { ...doc.fields, ulpin: doc.ulpin ?? null },
+        confidence: doc.confidence ?? {},
+        issues: doc.validation.issues,
+      });
+      await db.extractedRecord.update({
+        where: { documentId },
+        data: { qualityScore: quality.score },
+      });
+    }
   }
 
   return idByKey;
@@ -197,6 +238,25 @@ async function main() {
     data: LEARNED.map((c) => ({ ...c, applied: Math.max(0, c.occurrences - 1) })),
   });
 
+  /* ------------------------------------------- simulated external sources
+   * Three systems hold every parcel and they do not always agree. Seeded with
+   * the defects a government quality evaluation actually found: an area
+   * mismatch, and a registered sale the Record of Rights never caught up with.
+   */
+  await db.authoritativeRecord.createMany({
+    data: SEED_AUTHORITATIVE.map((r) => ({
+      source: r.source,
+      khasraNumber: r.khasraNumber,
+      village: r.village,
+      district: r.district,
+      ownerName: r.ownerName ?? null,
+      khataNumber: r.khataNumber ?? null,
+      plotArea: r.plotArea ?? null,
+      landClassification: r.landClassification ?? null,
+      asOf: new Date(Date.now() - r.asOfYearsAgo * 365.25 * 24 * 60 * 60 * 1000),
+    })),
+  });
+
   console.log(`\nSeeded ${SEED_DOCS.length} synthetic documents:`);
   for (const c of counts.sort((a, b) => a.status.localeCompare(b.status))) {
     console.log(`  ${c.status.padEnd(11)} ${c._count}`);
@@ -209,6 +269,13 @@ async function main() {
 
   const learned = await db.learnedCorrection.aggregate({ _sum: { occurrences: true, applied: true } });
   console.log(`\nSeeded ${LEARNED.length} learned corrections (${learned._sum.occurrences} officer corrections, applied ${learned._sum.applied} times).`);
+
+  const plantedConflicts = SEED_AUTHORITATIVE.filter((r) => r.note?.startsWith("PLANTED"));
+  console.log(`\nSeeded ${SEED_AUTHORITATIVE.length} simulated authoritative records across 3 sources.`);
+  console.log(`Cross-source conflicts planted (${plantedConflicts.length}):`);
+  for (const r of plantedConflicts) {
+    console.log(`  khasra ${r.khasraNumber.padEnd(7)} ${r.source.padEnd(13)} ${r.note?.replace("PLANTED — ", "")}`);
+  }
 
   console.log("\nAll data is synthetic. Local development only.\n");
 }

@@ -52,7 +52,7 @@ export async function getDashboardStats(
     // Confidence maps for the accuracy figure (CLAUDE.md D7).
     db.extractedRecord.findMany({
       where: district ? { district } : {},
-      select: { confidence: true },
+      select: { confidence: true, qualityScore: true },
     }),
     db.extractedRecord.groupBy({
       by: ["district"],
@@ -86,6 +86,20 @@ export async function getDashboardStats(
   }
   const avgAccuracy = scoreCount === 0 ? 0 : scoreSum / scoreCount;
 
+  // Mean data quality across records that have been scored.
+  //
+  // Reported separately from avgAccuracy, and it is the one shown on the
+  // dashboard: mean confidence answers "how sure was the reader of the
+  // characters", which is easy to mistake for "how correct is this record".
+  // The quality score answers the question people actually mean.
+  const scored = records
+    .map((r) => r.qualityScore)
+    .filter((q): q is number => typeof q === "number");
+  const avgQuality = scored.length === 0
+    ? 0
+    : Math.round(scored.reduce((a, b) => a + b, 0) / scored.length);
+  const lowQuality = scored.filter((q) => q < 70).length;
+
   // Fill every day in the window, so a quiet day is a gap in the chart rather
   // than a missing bar that silently compresses the timeline.
   const byDay = new Map<string, number>();
@@ -102,6 +116,8 @@ export async function getDashboardStats(
   return {
     totalProcessed,
     avgAccuracy,
+    avgQuality,
+    lowQuality,
     pendingVerification: countOf("PENDING"),
     flagged: countOf("FLAGGED"),
     byDistrict: districtRows

@@ -4,10 +4,12 @@ import { db } from "@/lib/db";
 import { fromJson } from "@/lib/json";
 import { getDashboardStats } from "@/lib/stats";
 import { learningStats } from "@/lib/learning";
+import { getDistrictRisk } from "@/lib/district-risk";
 import { ScreenHeader } from "@/components/screen-header";
 import { StatCard } from "@/components/stat-card";
 import { Panel } from "@/components/panel";
 import { EmptyState } from "@/components/empty-state";
+import { DistrictRiskPanel } from "@/components/district-risk-panel";
 import { asCount } from "@/lib/format";
 import type {
   ConfidenceMap, ExtractedFields, ValidationIssue,
@@ -31,16 +33,17 @@ export default async function DashboardPage({
   const { district } = await searchParams;
   const readOnly = session.user.role === "VIEWER";
 
-  const [stats, learning, recent] = await Promise.all([
+  const [stats, learning, districtRisk, recent] = await Promise.all([
     getDashboardStats(district),
     // Not filtered by district: what the recogniser has been taught applies
     // to every page it reads afterwards, wherever that page came from.
     learningStats(),
+    getDistrictRisk(district),
     db.document.findMany({
       where: district ? { record: { district } } : {},
       orderBy: { updatedAt: "desc" },
       take: 12,
-      include: { record: true, validation: true },
+      include: { record: true, validation: true, mutation: { select: { village: true, district: true } } },
     }),
   ]);
 
@@ -48,8 +51,8 @@ export default async function DashboardPage({
     id: row.id,
     filename: row.filename,
     status: row.status,
-    village: row.record?.village ?? null,
-    district: row.record?.district ?? null,
+    village: row.record?.village ?? row.mutation?.village ?? null,
+    district: row.record?.district ?? row.mutation?.district ?? null,
     ulpin: row.record?.ulpin ?? null,
     updatedAt: row.updatedAt.toISOString(),
     fields: row.record
@@ -137,6 +140,8 @@ export default async function DashboardPage({
         >
           <TrendChart data={stats.trend} />
         </Panel>
+
+        <DistrictRiskPanel rows={districtRisk} />
 
         <Panel
           title="Recent activity"

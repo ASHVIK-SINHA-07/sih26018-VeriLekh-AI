@@ -1,18 +1,21 @@
 import { db } from "@/lib/db";
 import { toJson } from "@/lib/json";
-import { runOcr } from "@/lib/ocr";
+import { runOcr, type OcrResult } from "@/lib/ocr";
 import { extractFields } from "@/lib/extract";
 import { applyLearnedCorrections } from "@/lib/learning";
 import { scoreRecord } from "@/lib/quality";
-import { gatherEvidence } from "@/lib/evidence";
+import { gatherEvidence, loadParcelHistory } from "@/lib/evidence";
+import { classifyDocument, extractMutationOrder, validateMutationOrder } from "@/lib/mutation-order";
 import { validateRecord, type ExistingRecord } from "@/lib/validate";
 import type { DocumentStatus, ExtractResponse } from "@/types";
 
 /**
  * The extraction pipeline for one document:
  *
- *   scan → runOcr → extractFields → applyLearnedCorrections
- *        → validateRecord → persist → set status
+ *   scan → runOcr → classifyDocument ─┬─ khatauni:  extractFields → applyLearnedCorrections
+ *                                     │             → validateRecord → persist → set status
+ *                                     └─ mutation order: extractMutationOrder
+ *                                                   → preview against the parcel's chain → persist
  *
  * Lives here rather than in the route handler because two callers need it:
  * the background worker that drains the queue, and the API route when a
@@ -27,6 +30,13 @@ export async function runExtraction(documentId: string): Promise<ExtractResponse
   if (!document) throw new Error(`No document ${documentId}`);
 
   const ocr = await runOcr(document.filePath);
+
+  // What kind of page this is decides which fields are read off it. Decided
+  // from the page's own heading, so a mixed batch can go in one upload.
+  if (classifyDocument(ocr).kind === "MUTATION_ORDER") {
+    return runMutationOrder(documentId, ocr);
+  }
+
   const raw = extractFields(ocr);
 
   // Apply corrections officers have already made. The recogniser repeats its
@@ -85,6 +95,8 @@ export async function runExtraction(documentId: string): Promise<ExtractResponse
   };
 
   await db.$transaction([
+    // A page re-read as a khatauni carries no stale mutation-order reading.
+    db.extractedMutation.deleteMany({ where: { documentId } }),
     db.extractedRecord.upsert({
       where: { documentId },
       update: recordData,
@@ -104,7 +116,7 @@ export async function runExtraction(documentId: string): Promise<ExtractResponse
         duplicateOfId: validation.duplicateOf,
       },
     }),
-    db.document.update({ where: { id: documentId }, data: { status } }),
+    db.document.update({ where: { id: documentId }, data: { status, documentType: "KHATAUNI" } }),
   ]);
 
   return {
@@ -113,5 +125,58 @@ export async function runExtraction(documentId: string): Promise<ExtractResponse
     extractedFields: fields,
     confidence,
     validation,
+    documentType: "KHATAUNI",
+    mutationFields: null,
+  };
+}
+
+/**
+ * A दाखिल-खारिज order: read it, then check it against the parcel's chain as
+ * it would stand if the order were accepted.
+ *
+ * Nothing is added to the register here. The order becomes PENDING or
+ * FLAGGED and waits for an officer; only their approval turns it into a
+ * mutation entry (the verify route). So a double sale is stopped at intake,
+ * with the finding in front of the officer, rather than discovered later in
+ * a chain that already contains it.
+ */
+async function runMutationOrder(documentId: string, ocr: OcrResult): Promise<ExtractResponse> {
+  const { fields, confidence } = extractMutationOrder(ocr);
+  const history = await loadParcelHistory(fields);
+  const checked = validateMutationOrder({ fields, confidence, existing: history.rows });
+
+  const status: DocumentStatus = checked.status === "PASS" ? "PENDING" : "FLAGGED";
+  const data = { ...fields, confidence: toJson(confidence) };
+
+  await db.$transaction([
+    // A page re-read as an order carries no stale khatauni reading.
+    db.extractedRecord.deleteMany({ where: { documentId } }),
+    db.extractedMutation.upsert({
+      where: { documentId },
+      update: data,
+      create: { documentId, ...data },
+    }),
+    db.validationResult.upsert({
+      where: { documentId },
+      update: { status: checked.status, issues: toJson(checked.issues), duplicateOfId: null },
+      create: { documentId, status: checked.status, issues: toJson(checked.issues), duplicateOfId: null },
+    }),
+    db.document.update({ where: { id: documentId }, data: { status, documentType: "MUTATION_ORDER" } }),
+  ]);
+
+  return {
+    documentId,
+    status,
+    // The contract's khatauni fields, carrying only what the order shares
+    // with a khatauni: which parcel it is about.
+    extractedFields: {
+      ownerName: null, surveyNumber: null, khasraNumber: fields.khasraNumber,
+      khataNumber: null, plotArea: null, village: fields.village, tehsil: null,
+      district: fields.district, landClassification: null, ulpin: null,
+    },
+    confidence,
+    validation: { status: checked.status, issues: checked.issues, duplicateOf: null },
+    documentType: "MUTATION_ORDER",
+    mutationFields: fields,
   };
 }

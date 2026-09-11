@@ -48,6 +48,8 @@ export interface MutationRow {
   effectiveDate: Date;
   recordedAt: Date;
   supersedesId: string | null;
+  /** The scan this entry was read from, when it came through the pipeline. */
+  sourceDocumentId?: string | null;
 }
 
 export type FindingKind =
@@ -63,7 +65,8 @@ export type FindingKind =
   | "duplicateNumber"     // two entries carry the same mutation number
   | "unrecordedTransfer"  // chain's holder is not the record's owner
   | "unlistedCoOwners"    // chain has co-owners the record does not name
-  | "missingTransferor";  // a transfer with nobody transferring
+  | "missingTransferor"   // a transfer with nobody transferring
+  | "titleNotTraced";     // digitised history begins mid-chain
 
 export type Severity = "critical" | "warning";
 
@@ -81,6 +84,7 @@ const SEVERITY: Record<FindingKind, Severity> = {
   unreadableShare: "warning",
   duplicateNumber: "warning",
   unlistedCoOwners: "warning",
+  titleNotTraced: "warning",
 };
 
 export interface ChainFinding {
@@ -237,13 +241,39 @@ export function analyseChain({ mutations, recordOwner, now = new Date() }: Chain
 
   const steps: ChainStep[] = [];
 
+  // Registers are digitised from some point onward, not from the parcel's
+  // creation. When the earliest entry on record is a transfer rather than an
+  // original entry, the transferor's earlier title simply is not on file —
+  // which is not the same as their having none. They are presumed to have
+  // held what they transferred, and the chain says so as a warning: the
+  // history needs its earlier documents, but nothing here contradicts it.
+  const earliest = byTime[0];
+  if (earliest && earliest.type !== "ORIGINAL" && earliest.fromOwner) {
+    const opening = earliest.type === "INHERITANCE"
+      ? byTime
+          .filter((m) => m.type === "INHERITANCE" && m.fromOwner === earliest.fromOwner &&
+            m.effectiveDate.getTime() === earliest.effectiveDate.getTime())
+          .map((m) => parseShare(m.share) ?? ZERO)
+          .reduce(add, ZERO)
+      : parseShare(earliest.share);
+    if (opening && !isZero(opening)) {
+      holders.push({ owner: earliest.fromOwner, share: opening, since: earliest.effectiveDate });
+      flag(
+        "titleNotTraced",
+        `The digitised history begins with this ${MUTATION_LABELS[earliest.type].toLowerCase()} from ${earliest.fromOwner} — ` +
+          `how they acquired the parcel is not on record, so their title is presumed, not traced`,
+        earliest.seq,
+      );
+    }
+  }
+
   // An inheritance is recorded as one entry per heir, all naming the same
   // deceased on the same day. They are settled together so the first heir's
   // entry does not remove the deceased before the others are credited.
   const inheritanceGroups = new Map<string, MutationRow[]>();
   for (const m of byTime) {
     if (m.type !== "INHERITANCE" || !m.fromOwner) continue;
-    const key = `${m.fromOwner} ${m.effectiveDate.toISOString()}`;
+    const key = `${m.fromOwner}\u0000${m.effectiveDate.toISOString()}`;
     inheritanceGroups.set(key, [...(inheritanceGroups.get(key) ?? []), m]);
   }
   const settledGroups = new Set<string>();
@@ -314,7 +344,7 @@ export function analyseChain({ mutations, recordOwner, now = new Date() }: Chain
 
     /* ---- inheritance: settle every heir of this death at once ------- */
     if (m.type === "INHERITANCE") {
-      const key = `${m.fromOwner} ${m.effectiveDate.toISOString()}`;
+      const key = `${m.fromOwner}\u0000${m.effectiveDate.toISOString()}`;
       if (!settledGroups.has(key)) {
         settledGroups.add(key);
         const heirs = inheritanceGroups.get(key) ?? [m];

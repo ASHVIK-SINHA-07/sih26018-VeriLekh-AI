@@ -222,6 +222,34 @@ test("an unreadable share is reported rather than guessed", () => {
   assert.ok(r.findings.some((x) => x.kind === "unreadableShare"));
 });
 
+test("a history that begins with a transfer presumes the seller's title, and says so", () => {
+  // Registers are digitised from some point on. A first entry that is a sale
+  // is not a chain break — but the untraced title is named as a warning.
+  const r = analyseChain({
+    mutations: [
+      m({ type: "SALE", fromOwner: "हरि प्रसाद सिंह", toOwner: "अनिल कुमार सिंह", share: "1", effectiveDate: on("2009-05-01") }),
+    ],
+    recordOwner: "अनिल कुमार सिंह",
+    now: NOW,
+  });
+  assert.ok(!r.findings.some((f) => f.kind === "chainBreak"), JSON.stringify(r.findings));
+  const f = r.findings.find((x) => x.kind === "titleNotTraced");
+  assert.ok(f);
+  assert.equal(f.severity, "warning");
+  assert.deepEqual(r.currentHolders.map((h) => [h.owner, h.share]), [["अनिल कुमार सिंह", "1"]]);
+});
+
+test("a later stranger selling is still a chain break, even when history began mid-chain", () => {
+  const r = analyseChain({
+    mutations: [
+      m({ type: "SALE", fromOwner: "अ", toOwner: "ब", share: "1", effectiveDate: on("2009-01-01") }),
+      m({ type: "SALE", fromOwner: "अजनबी", toOwner: "स", share: "1", effectiveDate: on("2015-01-01") }),
+    ],
+    now: NOW,
+  });
+  assert.ok(r.findings.some((f) => f.kind === "chainBreak"));
+});
+
 test("an empty register is EMPTY, not CLEAN", () => {
   // No history digitised is not the same as a history with nothing wrong.
   assert.equal(analyseChain({ mutations: [], now: NOW }).status, "EMPTY");

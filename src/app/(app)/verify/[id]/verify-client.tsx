@@ -9,15 +9,7 @@ import { FieldEditor } from "@/components/field-editor";
 import { NgdrsPanel } from "@/components/ngdrs-panel";
 import { ScanViewer } from "@/components/scan-viewer";
 import { Panel } from "@/components/panel";
-import {
-  EXTRACTED_FIELD_NAMES,
-  FIELD_LABELS,
-  type ConfidenceMap,
-  type DocumentStatus,
-  type ExtractedFieldName,
-  type ExtractedFields,
-  type ValidationSummary,
-} from "@/types";
+import type { DocumentStatus, ValidationSummary } from "@/types";
 
 /**
  * Scan and fields side by side — docs/04_Frontend_Spec.md screen 3.
@@ -25,6 +17,10 @@ import {
  * Only fields the verifier actually changed are sent as `editedFields`, so the
  * audit trail records real corrections rather than a diff of every field on
  * the form.
+ *
+ * The field set is passed in, not assumed: a khatauni and a mutation order
+ * are reviewed on the same screen — scan beside fields, approve or reject —
+ * but carry different fields and mean different things when approved.
  */
 
 interface Props {
@@ -32,10 +28,19 @@ interface Props {
   filename: string;
   filePath: string;
   status: DocumentStatus;
-  fields: ExtractedFields;
-  confidence: ConfidenceMap;
+  /** The fields this kind of document carries, in display order. */
+  fieldNames: readonly string[];
+  fieldLabels: Record<string, string>;
+  fields: Record<string, string | null>;
+  confidence: Record<string, number | undefined>;
   validation: ValidationSummary | null;
   duplicateOf: { id: string; filename: string; ulpin: string | null } | null;
+  /** Set on a verified khatauni; a mutation order never has one. */
+  ulpin?: string | null;
+  /** What approving this document does, in one line. */
+  approveHint: string;
+  /** Heading over the fields panel. */
+  fieldsTitle?: string;
 }
 
 const DECIDED: DocumentStatus[] = ["VERIFIED", "REJECTED"];
@@ -44,7 +49,7 @@ export function VerifyClient(props: Props) {
   const router = useRouter();
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(
-      EXTRACTED_FIELD_NAMES.map((field) => [field, props.fields[field] ?? ""]),
+      props.fieldNames.map((field) => [field, props.fields[field] ?? ""]),
     ),
   );
   const [submitting, setSubmitting] = useState<null | "approve" | "reject">(null);
@@ -53,19 +58,19 @@ export function VerifyClient(props: Props) {
   const decided = DECIDED.includes(props.status);
 
   const edited = useMemo(() => {
-    const changed = new Set<ExtractedFieldName>();
-    for (const field of EXTRACTED_FIELD_NAMES) {
+    const changed = new Set<string>();
+    for (const field of props.fieldNames) {
       const original = props.fields[field] ?? "";
       if (values[field].trim() !== original.trim()) changed.add(field);
     }
     return changed;
-  }, [values, props.fields]);
+  }, [values, props.fields, props.fieldNames]);
 
   async function submit(action: "approve" | "reject") {
     setSubmitting(action);
     setError(null);
 
-    const editedFields: Partial<Record<ExtractedFieldName, string>> = {};
+    const editedFields: Record<string, string> = {};
     for (const field of edited) editedFields[field] = values[field];
 
     try {
@@ -110,9 +115,9 @@ export function VerifyClient(props: Props) {
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="text-[1.375rem]">{props.filename}</h1>
           <StatusBadge status={props.status} />
-          {props.fields.ulpin ? (
+          {props.ulpin ? (
             <span className="border border-hairline bg-panel-alt px-2 py-1 font-mono text-[11.5px] tracking-tight text-ink-2 tabular-nums">
-              {props.fields.ulpin}
+              {props.ulpin}
             </span>
           ) : null}
         </div>
@@ -162,8 +167,8 @@ export function VerifyClient(props: Props) {
       ) : null}
 
       {/* --------------------------------- simulated registry push (T9) */}
-      {props.status === "VERIFIED" && props.fields.ulpin ? (
-        <NgdrsPanel ulpin={props.fields.ulpin} />
+      {props.status === "VERIFIED" && props.ulpin ? (
+        <NgdrsPanel ulpin={props.ulpin} />
       ) : null}
       </div>
 
@@ -182,7 +187,7 @@ export function VerifyClient(props: Props) {
         {/* right: the fields */}
         <div className="space-y-4">
           <Panel
-            title="Extracted fields"
+            title={props.fieldsTitle ?? "Extracted fields"}
             meta={
               edited.size > 0 ? (
                 <span className="text-status-verified">
@@ -194,11 +199,11 @@ export function VerifyClient(props: Props) {
             }
             bodyClassName="grid gap-4 p-4 sm:grid-cols-2"
           >
-            {EXTRACTED_FIELD_NAMES.map((field) => (
+            {props.fieldNames.map((field) => (
               <FieldEditor
                 key={field}
                 name={field}
-                label={FIELD_LABELS[field]}
+                label={props.fieldLabels[field] ?? field}
                 value={values[field]}
                 confidence={props.confidence[field]}
                 edited={edited.has(field)}
@@ -237,7 +242,7 @@ export function VerifyClient(props: Props) {
                 {submitting === "approve" ? "Approving…" : "Approve"}
               </Button>
               <span className="text-[12px] text-muted-foreground">
-                Approving commits the record and issues a ULPIN-style id.
+                {props.approveHint}
               </span>
             </div>
           )}

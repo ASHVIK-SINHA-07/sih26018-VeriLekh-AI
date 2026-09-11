@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { reconcile, reconciliationIssues, type AuthoritativeRow, type ReconciliationSummary, type SourceName } from "@/lib/reconcile";
-import { analyseChain, type ChainAnalysis, type MutationKind } from "@/lib/chain";
+import { analyseChain, type ChainAnalysis, type MutationKind, type MutationRow } from "@/lib/chain";
 import { samePlace } from "@/lib/similarity";
 import type { ExtractedFields, ValidationIssue } from "@/types";
 
@@ -31,18 +31,52 @@ export function chainIssues(chain: ChainAnalysis): ValidationIssue[] {
   }));
 }
 
+export interface ParcelKey {
+  khasraNumber: string | null;
+  village: string | null;
+  district: string | null;
+}
+
+/**
+ * The parcel these fields describe, and its mutation register. Khasra is
+ * matched exactly and place leniently (D49). Shared by everything that needs a
+ * parcel's history — the khatauni's evidence, a mutation order's preview, and
+ * the approve route that adds an entry — so all three find the same parcel.
+ */
+export async function loadParcelHistory(key: ParcelKey): Promise<{ parcelId: string | null; rows: MutationRow[] }> {
+  const khasra = key.khasraNumber?.trim();
+  if (!khasra || !key.village || !key.district) return { parcelId: null, rows: [] };
+
+  const candidates = await db.parcel.findMany({ where: { khasraNumber: khasra }, include: { mutations: true } });
+  const parcel = candidates.find(
+    (p) => samePlace(key.village as string, p.village) && samePlace(key.district as string, p.district),
+  );
+  if (!parcel) return { parcelId: null, rows: [] };
+
+  return {
+    parcelId: parcel.id,
+    rows: parcel.mutations.map((m) => ({
+      id: m.id,
+      seq: m.seq,
+      mutationNumber: m.mutationNumber,
+      type: m.type as MutationKind,
+      fromOwner: m.fromOwner,
+      toOwner: m.toOwner,
+      share: m.share,
+      effectiveDate: m.effectiveDate,
+      recordedAt: m.recordedAt,
+      supersedesId: m.supersedesId,
+      sourceDocumentId: m.sourceDocumentId,
+    })),
+  };
+}
+
 export async function gatherEvidence(fields: ExtractedFields): Promise<Evidence> {
   const khasra = fields.khasraNumber?.trim();
-
-  // Both lookups are narrowed by khasra, which is matched exactly (D49), then
-  // by place, which is matched leniently — a misread village is still the
-  // same village, but a misread parcel number is a different parcel.
-  const [sourceRows, parcels] = khasra
-    ? await Promise.all([
-        db.authoritativeRecord.findMany({ where: { khasraNumber: khasra } }),
-        db.parcel.findMany({ where: { khasraNumber: khasra }, include: { mutations: true } }),
-      ])
-    : [[], []];
+  const [sourceRows, history] = await Promise.all([
+    khasra ? db.authoritativeRecord.findMany({ where: { khasraNumber: khasra } }) : Promise.resolve([]),
+    loadParcelHistory(fields),
+  ]);
 
   const reconciliation = reconcile({
     fields,
@@ -59,26 +93,8 @@ export async function gatherEvidence(fields: ExtractedFields): Promise<Evidence>
     })),
   });
 
-  const parcel = parcels.find(
-    (p) => fields.village && fields.district &&
-      samePlace(fields.village, p.village) && samePlace(fields.district, p.district),
-  ) ?? null;
-
-  const chain = analyseChain({
-    mutations: (parcel?.mutations ?? []).map((m) => ({
-      id: m.id,
-      seq: m.seq,
-      mutationNumber: m.mutationNumber,
-      type: m.type as MutationKind,
-      fromOwner: m.fromOwner,
-      toOwner: m.toOwner,
-      share: m.share,
-      effectiveDate: m.effectiveDate,
-      recordedAt: m.recordedAt,
-      supersedesId: m.supersedesId,
-    })),
-    recordOwner: fields.ownerName,
-  });
+  const chain = analyseChain({ mutations: history.rows, recordOwner: fields.ownerName });
+  const parcel = history.parcelId ? { id: history.parcelId } : null;
 
   return {
     reconciliation,

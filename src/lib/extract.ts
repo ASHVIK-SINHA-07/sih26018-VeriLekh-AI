@@ -83,11 +83,31 @@ function skeletonise(value: string): { skeleton: string; index: number[] } {
   const index: number[] = [];
   for (let i = 0; i < value.length; i += 1) {
     const char = value[i];
-    if (COMBINING_MARKS.test(char) || /\s/.test(char)) continue;
+    // Whitespace and dashes are dropped as well: OCR writes दाखिल-खारिज as
+    // "दाखिल-खारिज", "दाखिल -- खारिज" or "दाखिल खारिज", and all three are the
+    // same label.
+    if (COMBINING_MARKS.test(char) || /[\s\-–—]/.test(char)) continue;
     chars.push(char);
     index.push(i);
   }
   return { skeleton: chars.join(""), index };
+}
+
+/**
+ * Everything the engine needs to find one field on a page. Khatauni fields
+ * and mutation-order fields are both described this way, so one extractor —
+ * with its skeleton matching, repeated-label stripping and shape checks —
+ * serves every document type instead of two copies drifting apart.
+ */
+export interface FieldSpec {
+  /** Devanagari labels, longest first — matched on consonant skeleton. */
+  devanagari: string[];
+  /** Romanised fallbacks. */
+  latin: RegExp[];
+  /** What a plausible value looks like; a mismatch cuts confidence. */
+  shape?: RegExp;
+  /** Always one token — never a name or a place. */
+  singleToken?: boolean;
 }
 
 /**
@@ -130,14 +150,14 @@ const LEAD_SEPARATORS = /^[\s:：\-–—._|।/\\]+/;
  * ("तहसील तहसील. मलहिबाद"). Strip any repeat sitting at the front of the
  * value before reading it.
  */
-function stripRepeatedLabel(rest: string, field: ExtractedFieldName): string {
+function stripRepeatedLabel(rest: string, spec: FieldSpec): string {
   let value = rest;
   for (let round = 0; round < 2; round += 1) {
     value = value.replace(LEAD_SEPARATORS, "");
     const shape = skeletonise(value);
     let stripped = false;
 
-    for (const label of DEVANAGARI_LABELS[field]) {
+    for (const label of spec.devanagari) {
       const target = skeletonise(label).skeleton;
       if (!target || !shape.skeleton.startsWith(target)) continue;
 
@@ -169,8 +189,8 @@ function stripRepeatedLabel(rest: string, field: ExtractedFieldName): string {
 }
 
 /** Everything after `cut`, cleaned of separators, units and OCR speckle. */
-function valueAfter(line: string, cut: number, field: ExtractedFieldName): string | null {
-  let value = stripRepeatedLabel(line.slice(cut), field);
+function valueAfter(line: string, cut: number, spec: FieldSpec): string | null {
+  let value = stripRepeatedLabel(line.slice(cut), spec);
 
   // Drop a parenthetical unit that belongs to the label, e.g. "क्षेत्रफल (हे.)"
   value = value.replace(/^\s*\([^)]*\)/, "");
@@ -191,7 +211,7 @@ function valueAfter(line: string, cut: number, field: ExtractedFieldName): strin
   // ways ("87 8/7", "1.245 24 5"). For a field that is always one token, the
   // first token matching its shape is the reading to trust. Names and place
   // names are excluded — those contain spaces legitimately.
-  const shape = SINGLE_TOKEN_FIELDS.has(field) ? FIELD_SHAPES[field] : undefined;
+  const shape = spec.singleToken ? spec.shape : undefined;
   if (shape && /\s/.test(value)) {
     const token = value.split(/\s+/).find((part) => shape.test(part));
     if (token) return token;
@@ -204,30 +224,36 @@ function valueAfter(line: string, cut: number, field: ExtractedFieldName): strin
  * Find a field's label in a line and return where it ends, or -1.
  * Devanagari is matched on skeleton, Latin on the plain pattern.
  */
-function labelEndsAt(line: string, field: ExtractedFieldName): number {
+function labelEndsAt(line: string, spec: FieldSpec): number {
   const line_ = skeletonise(line);
 
-  for (const label of DEVANAGARI_LABELS[field]) {
+  for (const label of spec.devanagari) {
     const target = skeletonise(label).skeleton;
     if (!target) continue;
-    const at = line_.skeleton.indexOf(target);
-    if (at !== -1) {
+
+    for (let at = line_.skeleton.indexOf(target); at !== -1; at = line_.skeleton.indexOf(target, at + 1)) {
+      // The match must *start* a word. Without this, क्रेता (buyer) matches
+      // the tail of हस्तांतरणकर्ता (transferor) and the buyer is read off the
+      // seller's line. A mark before the match belongs to the previous letter.
+      const start = line_.index[at];
+      if (start > 0 && /[\p{L}\p{M}]/u.test(line[start - 1])) continue;
+
       // Map the end of the skeleton match back into the original string, then
       // step past any matra hanging off that last consonant — the skeleton
       // dropped it, but it is still part of the label, not the value.
       let end = line_.index[at + target.length - 1] + 1;
       while (end < line.length && COMBINING_MARKS.test(line[end])) end += 1;
 
-      // The skeleton match must end a word. Without this, खाता (khata) matches
-      // inside खतौनी (khatauni, the document type in the page header) and the
-      // khata number is read off the title.
+      // And it must *end* a word. Without this, खाता (khata) matches inside
+      // खतौनी (khatauni, the document type in the page header) and the khata
+      // number is read off the title.
       if (end < line.length && /\p{L}/u.test(line[end])) continue;
 
       return end;
     }
   }
 
-  for (const pattern of LATIN_LABELS[field]) {
+  for (const pattern of spec.latin) {
     const match = pattern.exec(line);
     if (match) return match.index + match[0].length;
   }
@@ -235,9 +261,8 @@ function labelEndsAt(line: string, field: ExtractedFieldName): number {
   return -1;
 }
 
-function looksRight(field: ExtractedFieldName, value: string): boolean {
-  const shape = FIELD_SHAPES[field];
-  return shape ? shape.test(value) : value.length > 0;
+function looksRight(spec: FieldSpec, value: string): boolean {
+  return spec.shape ? spec.shape.test(value) : value.length > 0;
 }
 
 export interface ExtractionOutput {
@@ -245,46 +270,65 @@ export interface ExtractionOutput {
   confidence: ConfidenceMap;
 }
 
+/** The khatauni's nine fields, described for the shared engine. */
+export const KHATAUNI_SPEC: Record<ExtractedFieldName, FieldSpec> = Object.fromEntries(
+  EXTRACTED_FIELD_NAMES.map((field) => [field, {
+    devanagari: DEVANAGARI_LABELS[field],
+    latin: LATIN_LABELS[field],
+    shape: FIELD_SHAPES[field],
+    singleToken: SINGLE_TOKEN_FIELDS.has(field),
+  }]),
+) as Record<ExtractedFieldName, FieldSpec>;
+
 /**
- * Extracts structured fields from an OCR result.
+ * Read any set of fields off a page, given a spec for each.
  *
  * Fields not found on the page are left null and carry no confidence entry —
  * an absent field is a validation problem, not a zero-confidence one, and the
  * two must not be conflated.
  */
-export function extractFields(ocr: OcrResult): ExtractionOutput {
+export function extractWith<F extends string>(
+  ocr: OcrResult,
+  spec: Record<F, FieldSpec>,
+  names: readonly F[],
+): { fields: Record<F, string | null>; confidence: Partial<Record<F, number>> } {
   // Prefer per-line blocks (they carry confidence); fall back to rawText.
   const blocks =
     ocr.blocks.length > 0
       ? ocr.blocks
       : ocr.rawText.split("\n").map((text) => ({ text, confidence: 0.5 }));
 
-  const fields = {} as ExtractedFields;
-  const confidence: ConfidenceMap = {};
+  const fields = {} as Record<F, string | null>;
+  const confidence: Partial<Record<F, number>> = {};
 
-  for (const field of EXTRACTED_FIELD_NAMES) {
-    fields[field] = null;
+  for (const name of names) {
+    fields[name] = null;
+    const fieldSpec = spec[name];
 
     for (const block of blocks) {
-      const cut = labelEndsAt(block.text, field);
+      const cut = labelEndsAt(block.text, fieldSpec);
       if (cut === -1) continue;
 
-      const value = valueAfter(block.text, cut, field);
+      const value = valueAfter(block.text, cut, fieldSpec);
       if (!value) continue;
 
-      fields[field] = value;
-      const score = looksRight(field, value)
+      fields[name] = value;
+      const score = looksRight(fieldSpec, value)
         ? block.confidence
         : block.confidence * SHAPE_MISMATCH_PENALTY;
-      confidence[field] = Number(Math.min(0.99, Math.max(0, score)).toFixed(2));
+      confidence[name] = Number(Math.min(0.99, Math.max(0, score)).toFixed(2));
       break;
     }
   }
 
-  // ULPIN is minted on approval, never read off the page.
-  fields.ulpin = null;
-
   return { fields, confidence };
+}
+
+/** Extracts the khatauni's structured fields from an OCR result. */
+export function extractFields(ocr: OcrResult): ExtractionOutput {
+  const { fields, confidence } = extractWith(ocr, KHATAUNI_SPEC, EXTRACTED_FIELD_NAMES);
+  // ULPIN is minted on approval, never read off the page.
+  return { fields: { ...fields, ulpin: null } as ExtractedFields, confidence: confidence as ConfidenceMap };
 }
 
 /**

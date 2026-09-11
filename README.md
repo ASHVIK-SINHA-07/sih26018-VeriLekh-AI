@@ -351,6 +351,8 @@ Correction memory — learns from every fix        █████████�
 Data quality score per record                    ██████████  complete
 Cross-source verification — RoR, registry, map   ██████████  complete
 Chain of title — ownership replayed 2005–2025    ██████████  complete
+Mutation orders read from scans, into the chain  ██████████  complete
+District field-verification priority             ██████████  complete
 Append-only audit trail, hash-chained            ██████████  complete
 Role-based access control                        ██████████  complete
 Dashboards and reporting                         ██████████  complete
@@ -373,6 +375,9 @@ Measured held out, with the corpus split by document so no page appears in both
 halves: taught from 8 documents, scored on the 9 it had never seen, exact-field
 accuracy went from **64% to 73%** — 7 fields, no regressions. Every gain was the
 same failure mode, a transposed matra on a recurring word.
+
+What these numbers are measured on — and the fact that no model is trained —
+is set out in [DATASET.md](DATASET.md).
 
 Every figure above comes from one script and nothing else:
 

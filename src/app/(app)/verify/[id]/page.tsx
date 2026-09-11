@@ -11,8 +11,10 @@ import { gatherEvidence } from "@/lib/evidence";
 import { scoreRecord } from "@/lib/quality";
 import { verifyDocumentChain } from "@/lib/audit";
 import { VerifyClient } from "./verify-client";
-import type {
-  AuditLogEntry, ConfidenceMap, ExtractedFields, ValidationIssue, ValidationSummary,
+import { MutationOrderView } from "./mutation-order-view";
+import {
+  EXTRACTED_FIELD_NAMES, FIELD_LABELS,
+  type AuditLogEntry, type ConfidenceMap, type ExtractedFields, type ValidationIssue, type ValidationSummary,
 } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +44,12 @@ export default async function VerifyDetailPage({
   });
 
   if (!document) notFound();
+
+  // A mutation order is reviewed against the parcel's chain of title, not
+  // scored as a Record of Rights.
+  if (document.documentType === "MUTATION_ORDER") {
+    return <MutationOrderView documentId={document.id} />;
+  }
 
   const record = document.record;
 
@@ -122,10 +130,14 @@ export default async function VerifyDetailPage({
       filename={document.filename}
       filePath={document.filePath}
       status={document.status}
-      fields={fields}
+      fieldNames={EXTRACTED_FIELD_NAMES}
+      fieldLabels={FIELD_LABELS}
+      fields={{ ...fields }}
       confidence={fromJson<ConfidenceMap>(record.confidence, {})}
       validation={validation}
       duplicateOf={duplicateOf}
+      ulpin={fields.ulpin}
+      approveHint="Approving commits the record and issues a ULPIN-style id."
     />
     <div className="space-y-4 px-4 pb-4 sm:px-7 sm:pb-7">
       <QualityPanel quality={quality} chain={provenance} />

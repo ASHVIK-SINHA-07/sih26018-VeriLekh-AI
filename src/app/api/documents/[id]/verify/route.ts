@@ -8,6 +8,7 @@ import { scoreRecord } from "@/lib/quality";
 import { gatherEvidence } from "@/lib/evidence";
 import { validateRecord, type ExistingRecord } from "@/lib/validate";
 import { generateUlpin } from "@/lib/ulpin";
+import { decideMutationOrder } from "./mutation-order";
 import {
   EXTRACTED_FIELD_NAMES,
   FIELD_LABELS,
@@ -61,6 +62,13 @@ export async function PUT(
   if (!document) {
     return NextResponse.json({ error: "Document not found" }, { status: 404 });
   }
+
+  // A mutation order is decided differently: approving it adds an entry to a
+  // parcel's register rather than committing a Record of Rights.
+  if (document.documentType === "MUTATION_ORDER") {
+    return decideMutationOrder(id, body, guard.actor.id, document.status);
+  }
+
   if (!document.record) {
     return NextResponse.json(
       { error: "This document has not been through extraction yet" },

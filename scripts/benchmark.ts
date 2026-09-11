@@ -30,6 +30,13 @@ import { extractFields } from "@/lib/extract";
 import { learnable } from "@/lib/learning";
 import { LOW_CONFIDENCE_THRESHOLD, type ExtractedFieldName } from "@/types";
 import { SEED_DOCS } from "../prisma/seed-data.ts";
+import { SEED_MUTATION_ORDERS } from "../prisma/seed-mutation-orders.ts";
+import {
+  classifyDocument, extractMutationOrder, normaliseShare, parseMutationType, parseOrderDate,
+  MUTATION_FIELD_NAMES, type MutationFieldName,
+} from "@/lib/mutation-order";
+import { compareNames } from "@/lib/similarity";
+import { SATBARA_FILENAME, SATBARA_TRUTH } from "../prisma/seed-multilingual.ts";
 
 const FIELDS: ExtractedFieldName[] = [
   "ownerName", "surveyNumber", "khasraNumber", "khataNumber", "plotArea",
@@ -44,12 +51,12 @@ const key = (v: string) => v.trim().toLowerCase();
 const truthOf = (d: (typeof docs)[number], f: ExtractedFieldName): string | null =>
   (d.fields as unknown as Record<string, string | null>)[f] ?? null;
 
-type Read = { key: string; fields: Record<string, string | null>; conf: Record<string, number | undefined> };
+type Read = { key: string; fields: Record<string, string | null>; conf: Record<string, number | undefined>; kind: string };
 
 async function read(d: (typeof docs)[number]): Promise<Read> {
   const ocr = await runOcr(`uploads/seed/${d.filename}`);
   const { fields, confidence } = extractFields(ocr);
-  return { key: d.key, fields: fields as never, conf: confidence as never };
+  return { key: d.key, fields: fields as never, conf: confidence as never, kind: classifyDocument(ocr).kind };
 }
 
 const { isMockOcr } = await import("@/lib/ocr");
@@ -162,6 +169,87 @@ console.log(`  held-out after      ${afterOk}/${baseN}  ${pct(afterOk, baseN)}%`
 console.log(`  net                 ${afterOk - baseOk >= 0 ? "+" : ""}${afterOk - baseOk} fields`);
 if (changes.length) { console.log("\n  field-level changes"); changes.forEach((c) => console.log("  " + c)); }
 
+/* ------------------------------- 3. classification and mutation orders -- */
+
+// Every page must be routed to the right reader before any field is read.
+const orderReads: { name: string; kind: string; fields: Record<MutationFieldName, string | null> }[] = [];
+for (const o of SEED_MUTATION_ORDERS) {
+  const ocr = await runOcr(`uploads/seed/${o.filename}`);
+  orderReads.push({ name: o.filename, kind: classifyDocument(ocr).kind, fields: extractMutationOrder(ocr).fields });
+}
+const khataunisRight = reads.filter((r) => r.kind === "KHATAUNI").length;
+const ordersRight = orderReads.filter((r) => r.kind === "MUTATION_ORDER").length;
+
+// Two measures, reported side by side. "Exact" is character for character as
+// printed. "Usable" is whether the value means the same thing once the
+// recogniser's matra reordering is set aside: the same person, the same date,
+// the same share, the same kind of transfer — which is what decides whether
+// the order can be checked against the chain. Quoting only the second would
+// hide how much the officer still has to correct.
+const usable = (f: MutationFieldName, got: string | null, truth: string): boolean => {
+  if (got == null) return false;
+  switch (f) {
+    case "mutationType": return parseMutationType(got) !== null && parseMutationType(got) === parseMutationType(truth);
+    case "orderDate": return parseOrderDate(got)?.getTime() === parseOrderDate(truth)?.getTime();
+    case "share": return normaliseShare(got) !== null && normaliseShare(got) === normaliseShare(truth);
+    case "fromOwner": case "toOwner": case "village": case "district":
+      return compareNames(got, truth).verdict === "same";
+    default: return got.trim() === truth.trim();
+  }
+};
+
+let mTotal = 0, mExact = 0, mUsable = 0;
+const mPerField: Record<string, { n: number; exact: number; usable: number }> = {};
+for (const o of SEED_MUTATION_ORDERS) {
+  const r = orderReads.find((x) => x.name === o.filename)!;
+  for (const f of MUTATION_FIELD_NAMES) {
+    const truth = o[f];
+    const got = r.fields[f];
+    mTotal++;
+    mPerField[f] ??= { n: 0, exact: 0, usable: 0 };
+    mPerField[f].n++;
+    if (got === truth) { mExact++; mPerField[f].exact++; }
+    if (usable(f, got, truth)) { mUsable++; mPerField[f].usable++; }
+  }
+}
+
+console.log("\n\nDOCUMENT CLASSIFICATION");
+console.log(`  khatauni read as khatauni          ${khataunisRight}/${reads.length}`);
+console.log(`  mutation order read as order       ${ordersRight}/${orderReads.length}`);
+
+console.log("\n\nMUTATION ORDERS");
+console.log(`  corpus              ${SEED_MUTATION_ORDERS.length} orders, ${mTotal} ground-truth fields`);
+console.log(`  exact as printed    ${mExact}/${mTotal}  ${pct(mExact, mTotal)}%`);
+console.log(`  usable              ${mUsable}/${mTotal}  ${pct(mUsable, mTotal)}%   (same person, date, share or transfer type)`);
+console.log("\n  per field               exact   usable");
+for (const f of MUTATION_FIELD_NAMES) {
+  const x = mPerField[f];
+  console.log(`    ${f.padEnd(20)} ${String(x.exact).padStart(2)}/${x.n}     ${String(x.usable).padStart(2)}/${x.n}`);
+}
+
+/* ------------------------------------------------------ 4. multilingual -- */
+
+// One Marathi page, read twice: with the language auto-detected (Tesseract
+// can tell the script but not Hindi from Marathi, so it picks Hindi), and with
+// Marathi requested explicitly. The difference is what the language parameter
+// buys. One page is a demonstration, not an accuracy figure.
+const marathi: { mode: string; exact: number; populated: number }[] = [];
+for (const [mode, language] of [["auto-detected", undefined], ["language: mar", "mar"]] as const) {
+  const { fields } = extractFields(await runOcr(`uploads/seed/${SATBARA_FILENAME}`, language));
+  const got = fields as unknown as Record<string, string | null>;
+  const keys = Object.keys(SATBARA_TRUTH);
+  marathi.push({
+    mode,
+    exact: keys.filter((k) => got[k] === SATBARA_TRUTH[k]).length,
+    populated: keys.filter((k) => got[k]).length,
+  });
+}
+const mFields = Object.keys(SATBARA_TRUTH).length;
+console.log("\n\nMULTILINGUAL — one synthetic Marathi 7/12 extract");
+for (const r of marathi) {
+  console.log(`  ${r.mode.padEnd(18)} ${r.exact}/${mFields} exact, ${r.populated}/${mFields} populated`);
+}
+
 if (process.argv.includes("--json")) {
   const out = {
     generatedAt: new Date().toISOString(),
@@ -172,6 +260,17 @@ if (process.argv.includes("--json")) {
       exactPct: pct(exact, total),
       wrongFlaggedPct: pct(wrongFlagged, wrong),
       perField,
+    },
+    multilingual: { page: SATBARA_FILENAME, fields: mFields, runs: marathi },
+    classification: {
+      khatauniCorrect: khataunisRight, khatauniTotal: reads.length,
+      orderCorrect: ordersRight, orderTotal: orderReads.length,
+    },
+    mutationOrders: {
+      orders: SEED_MUTATION_ORDERS.length, groundTruthFields: mTotal,
+      exact: mExact, usable: mUsable,
+      exactPct: pct(mExact, mTotal), usablePct: pct(mUsable, mTotal),
+      perField: mPerField,
     },
     correctionMemory: {
       trainDocuments: train.length, testDocuments: test.length,

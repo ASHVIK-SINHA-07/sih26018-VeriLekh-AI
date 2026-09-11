@@ -163,12 +163,17 @@ export interface ExtractResponse {
   extractedFields: ExtractedFields;
   confidence: ConfidenceMap;
   validation: ValidationSummary;
+  /** Additive: what the pipeline decided the page is. */
+  documentType?: "KHATAUNI" | "MUTATION_ORDER";
+  /** Additive: the order's own fields, when the page is a mutation order. */
+  mutationFields?: Record<string, string | null> | null;
 }
 
 /** PUT /api/documents/[id]/verify */
 export interface VerifyRequest {
   action: "approve" | "reject";
-  editedFields?: Partial<Record<ExtractedFieldName, string>>;
+  /** Keyed by the document's own field names — khatauni or mutation order. */
+  editedFields?: Partial<Record<string, string>>;
 }
 
 export interface VerifyResponse {

@@ -23,6 +23,9 @@ import bcrypt from "bcryptjs";
 import { SEED_DOCS, type SeedDoc } from "./seed-data.ts";
 import { SEED_AUTHORITATIVE } from "./seed-authoritative.ts";
 import { SEED_CHAINS } from "./seed-chains.ts";
+import { SEED_MUTATION_ORDERS, renderMutationOrderScan } from "./seed-mutation-orders.ts";
+import { SATBARA_FILENAME, SATBARA_SVG } from "./seed-multilingual.ts";
+import { appendAudit } from "@/lib/audit";
 import { renderKhatauniScan } from "./seed-scan.ts";
 
 const db = new PrismaClient();
@@ -94,6 +97,8 @@ async function writeScan(doc: SeedDoc, scanDir: string): Promise<string> {
 
 async function seedDocuments(userIds: Record<"ADMIN" | "VERIFIER", string>) {
   // Wipe in FK order — children before parents.
+  await db.extractionJob.deleteMany();
+  await db.extractedMutation.deleteMany();
   await db.mutation.deleteMany();
   await db.parcel.deleteMany();
   await db.authoritativeRecord.deleteMany();
@@ -226,6 +231,36 @@ async function seedDocuments(userIds: Record<"ADMIN" | "VERIFIER", string>) {
  * with the defects a government quality evaluation actually found, so the
  * reconciliation and chain panels have something real to catch on camera.
  */
+/**
+ * Mutation orders go in as *scans waiting to be read*, not as extracted rows.
+ * Each is queued for the worker, which reads it with the real OCR service and
+ * decides for itself that it is a mutation order — so the review screen shows
+ * what the pipeline actually made of the page.
+ */
+async function seedMutationOrders(uploaderId: string) {
+  const scanDir = path.join(UPLOAD_DIR, SCAN_SUBDIR);
+  // The Marathi benchmark fixture rides along: a scan on disk, not a document.
+  await writeFile(path.join(scanDir, SATBARA_FILENAME), SATBARA_SVG, "utf8");
+  for (const order of SEED_MUTATION_ORDERS) {
+    await writeFile(path.join(scanDir, order.filename), renderMutationOrderScan(order), "utf8");
+    const document = await db.document.create({
+      data: {
+        filename: order.filename,
+        filePath: path.posix.join(UPLOAD_DIR.replace(/^\.\//, ""), SCAN_SUBDIR, order.filename),
+        status: "UPLOADED",
+        uploadedById: uploaderId,
+      },
+    });
+    await appendAudit(db, [{
+      documentId: document.id,
+      actorId: uploaderId,
+      action: "UPLOAD",
+      after: { filename: order.filename, mimeType: "image/svg+xml" },
+    }]);
+    await db.extractionJob.create({ data: { documentId: document.id } });
+  }
+}
+
 async function seedEvidence() {
   await db.authoritativeRecord.createMany({
     data: SEED_AUTHORITATIVE.map((r) => ({
@@ -277,6 +312,7 @@ async function seedEvidence() {
 async function main() {
   const userIds = await seedUsers();
   await seedDocuments(userIds);
+  await seedMutationOrders(userIds.VERIFIER);
 
   const counts = await db.document.groupBy({ by: ["status"], _count: true });
   const planted = SEED_DOCS.filter((d) => d.note?.startsWith("PLANTED"));
@@ -330,6 +366,11 @@ async function main() {
   console.log(`\nSeeded ${SEED_CHAINS.length} ownership chains (${entries} mutation entries, 2005–2025):`);
   for (const c of SEED_CHAINS) {
     console.log(`  khasra ${c.khasraNumber.padEnd(7)} ${c.district.padEnd(11)} ${c.note.replace("PLANTED — ", "")}`);
+  }
+
+  console.log(`\nQueued ${SEED_MUTATION_ORDERS.length} mutation-order scans for the worker to read with the real OCR service:`);
+  for (const o of SEED_MUTATION_ORDERS) {
+    console.log(`  ${o.filename.padEnd(26)} ${o.note.replace("PLANTED — ", "")}`);
   }
 
   console.log("\nAll data is synthetic. Local development only.\n");

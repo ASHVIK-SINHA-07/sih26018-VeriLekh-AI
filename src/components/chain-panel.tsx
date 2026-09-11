@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { MUTATION_LABELS, type ChainAnalysis, type ChainFinding } from "@/lib/chain";
 
 /**
@@ -22,12 +23,24 @@ function FindingLine({ f }: { f: ChainFinding }) {
   );
 }
 
-export function ChainPanel({ chain, khasra }: { chain: ChainAnalysis; khasra: string | null }) {
+export function ChainPanel({
+  chain, khasra, title = "Chain of title", note, highlightId, currentDocumentId,
+}: {
+  chain: ChainAnalysis;
+  khasra: string | null;
+  title?: string;
+  /** One line under the heading — e.g. that this is a preview. */
+  note?: string;
+  /** An entry to mark — the order under review, proposed or just entered. */
+  highlightId?: string | null;
+  /** The document on screen, so its own entry is not linked to itself. */
+  currentDocumentId?: string;
+}) {
   if (chain.status === "EMPTY") {
     return (
       <div className="border border-hairline border-l-[3px] border-l-hairline-2 bg-panel">
         <div className="border-b border-hairline px-4 py-3">
-          <p className="text-[13.5px] font-semibold text-foreground">Chain of title</p>
+          <p className="text-[13.5px] font-semibold text-foreground">{title}</p>
         </div>
         <p className="px-4 py-3 text-[12.5px] text-ink-2">
           No mutation history has been digitised for {khasra ? `khasra ${khasra}` : "this parcel"} yet.
@@ -62,7 +75,7 @@ export function ChainPanel({ chain, khasra }: { chain: ChainAnalysis; khasra: st
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-hairline px-4 py-3">
         <p className="text-[13.5px] font-semibold text-foreground">
-          Chain of title
+          {title}
           {chain.span ? (
             <span className="font-normal text-ink-2">
               {" "}— {chain.span.from.getUTCFullYear()} to {chain.span.to.getUTCFullYear()}, {chain.steps.length}{" "}
@@ -83,13 +96,22 @@ export function ChainPanel({ chain, khasra }: { chain: ChainAnalysis; khasra: st
         </p>
       </div>
 
+      {note ? (
+        <p className="border-b border-hairline bg-panel-alt px-4 py-2 text-[12px] text-ink-2">{note}</p>
+      ) : null}
+
       <ol className="px-4 py-2">
         {steps.map(({ mutation: m, applied }) => {
           const findings = byEntry.get(m.seq) ?? [];
           const bad = findings.some((f) => f.severity === "critical");
           const replaced = m.supersedesId ? correctionOf.get(m.supersedesId) : undefined;
           return (
-            <li key={m.id} className="relative flex gap-3 border-b border-hairline py-2.5 last:border-b-0">
+            <li
+              key={m.id}
+              className={`relative flex gap-3 border-b border-hairline py-2.5 last:border-b-0 ${
+                m.id === highlightId ? "-mx-4 border-l-[3px] border-l-navy bg-navy/[0.04] px-4" : ""
+              }`}
+            >
               <div className="w-[92px] shrink-0 pt-px text-[12px] tabular-nums text-ink-3">{d(m.effectiveDate)}</div>
               <div className="min-w-0 flex-1">
                 <p className={`text-[13px] ${bad ? "text-status-flagged" : "text-foreground"}`}>
@@ -103,6 +125,15 @@ export function ChainPanel({ chain, khasra }: { chain: ChainAnalysis; khasra: st
                   {m.mutationNumber ? `Mutation ${m.mutationNumber}` : "No mutation number"}
                   {` · entry ${m.seq}`}
                   {` · digitised ${d(m.recordedAt)}`}
+                  {m.id === highlightId ? <span className="font-semibold text-navy"> · this order</span> : null}
+                  {m.sourceDocumentId && m.sourceDocumentId !== currentDocumentId ? (
+                    <>
+                      {" · "}
+                      <Link href={`/verify/${m.sourceDocumentId}`} className="text-navy underline underline-offset-2">
+                        read from scan
+                      </Link>
+                    </>
+                  ) : null}
                 </p>
                 {replaced ? (
                   <p className="mt-1 text-[11.5px] text-ink-2">

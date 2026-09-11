@@ -61,11 +61,20 @@ model User {
   createdAt    DateTime   @default(now())
 }
 
+/// What a scanned page is. Decided by the pipeline from the page's heading,
+/// never by the uploader — so a batch of mixed paper can go in one upload.
+enum DocumentType {
+  KHATAUNI        // Record of Rights — who owns the parcel now
+  MUTATION_ORDER  // दाखिल-खारिज order — one change of ownership
+}
+
 model Document {
   id           String            @id @default(cuid())
   filename     String
   filePath     String
   status       DocumentStatus    @default(UPLOADED)
+  documentType DocumentType      @default(KHATAUNI)
+  mutation     ExtractedMutation?
   uploadedBy   User              @relation(fields: [uploadedById], references: [id])
   uploadedById String
   record       ExtractedRecord?
@@ -97,6 +106,32 @@ model ExtractedRecord {
   qualityScore       Int?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+}
+
+/// What was read off a mutation order.
+///
+/// Kept as text exactly as read, like ExtractedRecord — the officer corrects
+/// what the page says, and parsing into dates, shares and transfer types
+/// happens at approval, where a value that will not parse stops the order
+/// entering the register instead of being guessed at.
+model ExtractedMutation {
+  id             String   @id @default(cuid())
+  document       Document @relation(fields: [documentId], references: [id])
+  documentId     String   @unique
+  mutationNumber String?
+  orderDate      String?
+  mutationType   String?
+  fromOwner      String?
+  toOwner        String?
+  share          String?
+  khasraNumber   String?
+  village        String?
+  district       String?
+  confidence     Json
+  /// The register entry this order became, once an officer approved it.
+  mutationId     String?  @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model ValidationResult {

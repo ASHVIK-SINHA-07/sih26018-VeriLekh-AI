@@ -84,28 +84,37 @@ export function QualityPanel({
         </div>
       ) : null}
 
-      {/* Provenance. The chain is the reason the audit trail below is evidence
-          rather than a claim — so its state belongs on screen, not in a log. */}
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-t border-hairline px-4 py-3">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.09em] text-ink-3">
-          Provenance
+      <ProvenanceNote chain={chain} />
+    </div>
+  );
+}
+
+/**
+ * Whether this document's audit trail still verifies. The chain is the reason
+ * the audit trail is evidence rather than a claim, so its state belongs on
+ * screen, not in a log.
+ */
+export function ProvenanceNote({ chain, framed = false }: { chain: ChainVerdict; framed?: boolean }) {
+  return (
+    <div className={`flex flex-wrap items-baseline gap-x-2 gap-y-1 px-4 py-3 ${framed ? "border border-hairline bg-panel" : "border-t border-hairline"}`}>
+      <span className="text-[11px] font-semibold uppercase tracking-[0.09em] text-ink-3">
+        Provenance
+      </span>
+      {chain.intact ? (
+        <span className="text-[12.5px] text-ink-2">
+          <span className="font-semibold text-status-verified">Chain verified</span>
+          {" — "}
+          {chain.entries === 1
+            ? "1 audit entry, hash-sealed. Altering it, or inserting an entry after it, would break the chain."
+            : `${chain.entries} audit entries, each hash-linked to the one before it. Altering or removing any of them would break the chain.`}
         </span>
-        {chain.intact ? (
-          <span className="text-[12.5px] text-ink-2">
-            <span className="font-semibold text-status-verified">Chain verified</span>
-            {" — "}
-            {chain.entries === 1
-              ? "1 audit entry, hash-sealed. Altering it, or inserting an entry after it, would break the chain."
-              : `${chain.entries} audit entries, each hash-linked to the one before it. Altering or removing any of them would break the chain.`}
-          </span>
-        ) : (
-          <span className="text-[12.5px] text-ink-2">
-            <span className="font-semibold text-status-flagged">Chain broken</span>
-            {" — "}
-            at entry {chain.brokenAtSeq + 1} of {chain.entries}. {chain.reason}
-          </span>
-        )}
-      </div>
+      ) : (
+        <span className="text-[12.5px] text-ink-2">
+          <span className="font-semibold text-status-flagged">Chain broken</span>
+          {" — "}
+          at entry {chain.brokenAtSeq + 1} of {chain.entries}. {chain.reason}
+        </span>
+      )}
     </div>
   );
 }

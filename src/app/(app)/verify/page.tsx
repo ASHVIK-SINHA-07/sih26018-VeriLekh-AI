@@ -23,6 +23,7 @@ export default async function VerifyQueuePage() {
     where: { status: { in: REVIEWABLE_STATUSES } },
     include: {
       record: { select: { district: true, village: true } },
+      mutation: { select: { district: true, village: true } },
       validation: { select: { issues: true } },
     },
     orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
@@ -34,8 +35,9 @@ export default async function VerifyQueuePage() {
       id: row.id,
       filename: row.filename,
       status: row.status,
-      village: row.record?.village ?? null,
-      district: row.record?.district ?? null,
+      // A mutation order carries its parcel's place on its own reading.
+      village: row.record?.village ?? row.mutation?.village ?? null,
+      district: row.record?.district ?? row.mutation?.district ?? null,
       updatedAt: row.updatedAt.toISOString(),
       issueCount: issues.length,
       topIssue: issues[0]?.issue ?? null,

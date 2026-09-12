@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useI18n } from "@/i18n/client";
 
 /**
  * District filter — scopes every figure below it (doc 04 filter row).
@@ -15,10 +16,11 @@ export function DistrictFilter({
   const router = useRouter();
   const params = useSearchParams();
   const current = params.get("district") ?? "";
+  const { t } = useI18n();
 
   return (
     <label className="flex items-center gap-2 text-[13px]">
-      <span className="label-cap">District</span>
+      <span className="label-cap">{t("dashboard.districtFilter")}</span>
       <select
         value={current}
         onChange={(event) => {
@@ -27,7 +29,7 @@ export function DistrictFilter({
         }}
         className="h-8 border border-rule bg-panel px-2 text-[13px] outline-none focus-visible:border-navy"
       >
-        <option value="">All districts</option>
+        <option value="">{t("dashboard.allDistrictsOption")}</option>
         {districts.map((row) => (
           <option key={row.district} value={row.district}>
             {row.district} ({row.count})

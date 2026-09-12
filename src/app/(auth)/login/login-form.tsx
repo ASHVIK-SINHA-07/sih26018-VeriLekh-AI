@@ -5,13 +5,15 @@ import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useI18n } from "@/i18n/client";
 import { login, type LoginState } from "./actions";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const { t } = useI18n();
   return (
     <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? "Signing in…" : "Log in"}
+      {pending ? t("login.submitting") : t("login.submit")}
     </Button>
   );
 }
@@ -20,11 +22,12 @@ export function LoginForm() {
   const [state, formAction] = useActionState<LoginState, FormData>(login, {
     error: null,
   });
+  const { t } = useI18n();
 
   return (
     <form action={formAction} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t("login.email")}</Label>
         <Input
           id="email"
           name="email"
@@ -37,7 +40,7 @@ export function LoginForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{t("login.password")}</Label>
         <Input
           id="password"
           name="password"
@@ -50,7 +53,7 @@ export function LoginForm() {
 
       {state.error ? (
         <p role="alert" className="text-sm text-status-flagged">
-          {state.error}
+          {state.error === "missing" ? t("login.errorMissing") : t("login.errorInvalid")}
         </p>
       ) : null}
 

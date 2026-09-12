@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BarChart3, ClipboardCheck, Upload } from "lucide-react";
+import { useI18n } from "@/i18n/client";
 import type { Role } from "@/types";
 
 /**
@@ -10,13 +11,14 @@ import type { Role } from "@/types";
  * from the current path; the rest of the rail stays a server component.
  */
 const SECTIONS = [
-  { href: "/upload", label: "Upload", icon: Upload, roles: ["ADMIN", "VERIFIER"] },
-  { href: "/verify", label: "Verification", icon: ClipboardCheck, roles: ["ADMIN", "VERIFIER"] },
-  { href: "/dashboard", label: "Dashboard", icon: BarChart3, roles: ["ADMIN", "VERIFIER", "VIEWER"] },
+  { href: "/upload", label: "nav.upload", icon: Upload, roles: ["ADMIN", "VERIFIER"] },
+  { href: "/verify", label: "nav.verification", icon: ClipboardCheck, roles: ["ADMIN", "VERIFIER"] },
+  { href: "/dashboard", label: "nav.dashboard", icon: BarChart3, roles: ["ADMIN", "VERIFIER", "VIEWER"] },
 ] as const;
 
 export function SideRailNav({ role }: { role: Role }) {
   const pathname = usePathname();
+  const { t } = useI18n();
   const visible = SECTIONS.filter((section) =>
     (section.roles as readonly string[]).includes(role),
   );
@@ -42,7 +44,7 @@ export function SideRailNav({ role }: { role: Role }) {
               <span className="absolute top-0 left-0 h-full w-[3px] bg-terracotta" />
             ) : null}
             <Icon className="size-4" strokeWidth={1.75} />
-            {section.label}
+            {t(section.label)}
           </Link>
         );
       })}

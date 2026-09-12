@@ -112,8 +112,13 @@ export type IssueKind =
 
 export interface ValidationIssue {
   field: string;
+  /** English, for logs, tests and any reader without a translation. */
   issue: string;
   kind?: IssueKind;
+  /** Message code for the interface's translations (src/i18n). */
+  code?: string;
+  /** The values that fill the message. */
+  params?: Record<string, string | number>;
 }
 
 export interface ValidationSummary {

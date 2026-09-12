@@ -7,11 +7,13 @@ import { ProvenanceNote } from "@/components/quality-panel";
 import { loadParcelHistory } from "@/lib/evidence";
 import { verifyDocumentChain } from "@/lib/audit";
 import {
-  MUTATION_FIELD_LABELS, MUTATION_FIELD_NAMES, validateMutationOrder,
+  MUTATION_FIELD_NAMES, validateMutationOrder,
   type MutationConfidence, type MutationFields,
 } from "@/lib/mutation-order";
 import type { AuditLogEntry, ValidationIssue, ValidationSummary } from "@/types";
 import { VerifyClient } from "./verify-client";
+import { getI18n } from "@/i18n/server";
+import { renderFinding } from "@/i18n/translate";
 
 /**
  * The review screen for a दाखिल-खारिज order.
@@ -35,13 +37,14 @@ export async function MutationOrderView({ documentId }: { documentId: string }) 
     },
   });
 
+  const { t, locale } = await getI18n();
   const reading = document.mutation;
   if (!reading) {
     return (
       <section className="space-y-4 p-4 sm:p-7">
-        <Link href="/verify" className="text-sm text-navy underline underline-offset-2">← Back to queue</Link>
+        <Link href="/verify" className="text-sm text-navy underline underline-offset-2">{t("verify.back")}</Link>
         <h1 className="text-xl font-medium text-navy">{document.filename}</h1>
-        <p className="text-sm text-muted-foreground">This order has not been read yet, so there is nothing to review.</p>
+        <p className="text-sm text-muted-foreground">{t("verify.orderNotRead")}</p>
       </section>
     );
   }
@@ -83,7 +86,7 @@ export async function MutationOrderView({ documentId }: { documentId: string }) 
         khasra={fields.khasraNumber}
         highlightId={reading.mutationId}
         currentDocumentId={document.id}
-        note="This order has been approved — it is the marked entry in the parcel's register below."
+        note={t("chain.noteApproved")}
       />
     );
   } else if (document.status === "REJECTED") {
@@ -91,7 +94,7 @@ export async function MutationOrderView({ documentId }: { documentId: string }) 
       <ChainPanel
         chain={checked.before}
         khasra={fields.khasraNumber}
-        note="This order was rejected and never entered the register."
+        note={t("chain.noteRejected")}
       />
     );
   } else if (checked.after) {
@@ -99,13 +102,13 @@ export async function MutationOrderView({ documentId }: { documentId: string }) 
       <ChainPanel
         chain={checked.after}
         khasra={fields.khasraNumber}
-        title="Chain of title if this order is approved"
+        title={t("chain.titleIfApproved")}
         highlightId="proposed"
         currentDocumentId={document.id}
         note={
           checked.before.status === "EMPTY"
-            ? "Preview. No history for this parcel is on record yet — approving this order would begin it."
-            : "Preview. Nothing has entered the register yet — the proposed entry is marked."
+            ? t("chain.notePreviewEmpty")
+            : t("chain.notePreview")
         }
       />
     );
@@ -114,7 +117,7 @@ export async function MutationOrderView({ documentId }: { documentId: string }) 
       <ChainPanel
         chain={checked.before}
         khasra={fields.khasraNumber}
-        note="This order cannot be previewed against the chain until its type of transfer, date, share and transferee can be read."
+        note={t("chain.noteCannotPreview")}
       />
     );
   }
@@ -127,13 +130,14 @@ export async function MutationOrderView({ documentId }: { documentId: string }) 
         filePath={document.filePath}
         status={document.status}
         fieldNames={MUTATION_FIELD_NAMES}
-        fieldLabels={MUTATION_FIELD_LABELS}
+        fieldLabels={Object.fromEntries(MUTATION_FIELD_NAMES.map((f) => [f, t(`orderFields.${f}`)]))}
         fields={{ ...fields }}
         confidence={confidence}
         validation={validation}
+        issueTexts={validation.issues.map((issue) => renderFinding(t, locale, issue))}
         duplicateOf={null}
-        fieldsTitle="Read from the mutation order"
-        approveHint="Approving enters this order in the parcel's mutation register — its chain of title updates at once."
+        fieldsTitle={t("verify.orderFieldsTitle")}
+        approveHint={t("verify.approveHintOrder")}
       />
       <div className="space-y-4 px-4 pb-4 sm:px-7 sm:pb-7">
         {chainPanel}

@@ -28,6 +28,8 @@ export function chainIssues(chain: ChainAnalysis): ValidationIssue[] {
     field: "ownerName",
     kind: f.severity === "critical" ? ("chainDefect" as const) : ("chainWarning" as const),
     issue: f.message,
+    code: f.code ?? f.kind,
+    params: f.params,
   }));
 }
 

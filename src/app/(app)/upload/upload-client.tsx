@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/empty-state";
 import { Panel } from "@/components/panel";
-import { asRelativeTime } from "@/lib/format";
+import { useI18n } from "@/i18n/client";
+import type { MessageKey } from "@/i18n/translate";
 import {
   ACCEPTED_UPLOAD_TYPES,
   MAX_UPLOAD_BYTES,
@@ -33,18 +34,21 @@ interface QueueItem {
   stage: Stage;
   documentId?: string;
   status?: DocumentStatus;
-  message?: string;
+  /** What went wrong, as a catalogue key. `detail` is the server's own
+      English wording, shown only to English readers. */
+  error?: { key: MessageKey; detail?: string };
 }
+
+/** A recent upload, with its "6 hours ago" written on the server. */
+export type RecentUpload = DocumentListItem & { updatedLabel: string };
 
 const ACCEPT_ATTR = ACCEPTED_UPLOAD_TYPES.join(",");
 const MAX_MB = Math.round(MAX_UPLOAD_BYTES / 1024 / 1024);
 
-const STAGE_LABEL: Record<Stage, string> = {
-  uploading: "Uploading…",
-  queued: "Queued…",
-  extracting: "Reading the scan…",
-  done: "",
-  error: "",
+const STAGE_LABEL: Record<"uploading" | "queued" | "extracting", MessageKey> = {
+  uploading: "upload.stageUploading",
+  queued: "upload.stageQueued",
+  extracting: "upload.stageReading",
 };
 
 /** How often to ask whether a queued document has finished. */
@@ -52,12 +56,13 @@ const POLL_MS = 1500;
 /** Give up watching after this long; the worker may be backed up. */
 const POLL_TIMEOUT_MS = 180_000;
 
-export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
+export function UploadClient({ recent }: { recent: RecentUpload[] }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [busy, setBusy] = useState(false);
+  const { t, locale } = useI18n();
 
   const update = useCallback((key: string, patch: Partial<QueueItem>) => {
     setQueue((items) =>
@@ -70,11 +75,11 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
       // Check the obvious problems here so the user hears about them
       // immediately; the API re-checks both regardless.
       if (!ACCEPTED_UPLOAD_TYPES.includes(file.type as (typeof ACCEPTED_UPLOAD_TYPES)[number])) {
-        update(key, { stage: "error", message: "Not a JPG, PNG or PDF" });
+        update(key, { stage: "error", error: { key: "upload.errType" } });
         return;
       }
       if (file.size > MAX_UPLOAD_BYTES) {
-        update(key, { stage: "error", message: `Larger than ${MAX_MB} MB` });
+        update(key, { stage: "error", error: { key: "upload.errSize" } });
         return;
       }
 
@@ -88,7 +93,7 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
         });
         if (!uploadResponse.ok) {
           const body = await uploadResponse.json().catch(() => ({}));
-          update(key, { stage: "error", message: body.error ?? "Upload failed" });
+          update(key, { stage: "error", error: { key: "upload.errUpload", detail: body.error } });
           return;
         }
 
@@ -104,7 +109,7 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
           update(key, {
             stage: "error",
             documentId,
-            message: body.error ?? "Could not queue this scan",
+            error: { key: "upload.errQueue", detail: body.error },
           });
           return;
         }
@@ -119,7 +124,7 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
 
           const detail = await fetch(`/api/documents/${documentId}`);
           if (!detail.ok) {
-            update(key, { stage: "error", documentId, message: "Lost track of this document" });
+            update(key, { stage: "error", documentId, error: { key: "upload.errLost" } });
             return;
           }
 
@@ -130,7 +135,7 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
               stage: status === "UPLOADED" ? "error" : "done",
               documentId,
               status,
-              message: status === "UPLOADED" ? "Could not read this scan" : undefined,
+              error: status === "UPLOADED" ? { key: "upload.errUnreadable" } : undefined,
             });
             return;
           }
@@ -139,13 +144,13 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
             update(key, {
               stage: "error",
               documentId,
-              message: "Still processing — check the queue shortly",
+              error: { key: "upload.errSlow" },
             });
             return;
           }
         }
       } catch {
-        update(key, { stage: "error", message: "Network error — is the server running?" });
+        update(key, { stage: "error", error: { key: "upload.errNetwork" } });
       }
     },
     [update],
@@ -196,10 +201,8 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
             : "border-rule bg-panel"
         }`}
       >
-        <p className="text-[15px] font-semibold text-navy">Drag scanned records here</p>
-        <p className="mt-1 text-[13px] text-muted-foreground">
-          or browse for files on your computer
-        </p>
+        <p className="text-[15px] font-semibold text-navy">{t("upload.drop")}</p>
+        <p className="mt-1 text-[13px] text-muted-foreground">{t("upload.browseHint")}</p>
 
         <Button
           type="button"
@@ -208,12 +211,10 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
           disabled={busy}
           onClick={() => inputRef.current?.click()}
         >
-          {busy ? "Working…" : "Browse files"}
+          {busy ? t("upload.working") : t("upload.browse")}
         </Button>
 
-        <p className="label-cap mt-4">
-          JPG, PNG or PDF · up to {MAX_MB} MB each · several at once is fine
-        </p>
+        <p className="label-cap mt-4">{t("upload.accepts", { mb: MAX_MB })}</p>
 
         <input
           ref={inputRef}
@@ -231,7 +232,7 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
       {/* --------------------------------------------------- in-flight queue */}
       {queue.length > 0 ? (
         <section className="space-y-3">
-          <Panel title="This batch" meta={`${queue.length} file${queue.length === 1 ? "" : "s"}`}>
+          <Panel title={t("upload.batch")} meta={t("upload.batchCount", { count: queue.length })}>
           <ul className="divide-y divide-hairline">
             {queue.map((item) => (
               <li
@@ -245,11 +246,15 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
                     <StatusBadge status={item.status} />
                   ) : item.stage === "error" ? (
                     <span className="text-sm text-status-flagged">
-                      {item.message}
+                      {item.error
+                        ? locale === "en" && item.error.detail
+                          ? item.error.detail
+                          : t(item.error.key, { mb: MAX_MB })
+                        : null}
                     </span>
                   ) : (
                     <span className="text-sm text-muted-foreground">
-                      {STAGE_LABEL[item.stage]}
+                      {item.stage === "done" ? null : t(STAGE_LABEL[item.stage])}
                     </span>
                   )}
                 </span>
@@ -260,7 +265,7 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
                       href={`/verify/${item.documentId}`}
                       className="text-[12.5px] font-medium text-navy hover:underline"
                     >
-                      Review
+                      {t("common.review")}
                     </Link>
                   ) : null}
                 </span>
@@ -273,10 +278,10 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
 
       {/* ------------------------------------------------- recent uploads */}
       <section className="space-y-3">
-        <Panel title="Recent uploads" meta={`${recent.length} most recent`}>
+        <Panel title={t("upload.recent")} meta={t("upload.recentMeta", { count: recent.length })}>
         {recent.length === 0 ? (
           <div className="p-6">
-            <EmptyState title="No documents yet" hint="Upload a scanned record to begin." />
+            <EmptyState title={t("upload.emptyTitle")} hint={t("upload.emptyHint")} />
           </div>
         ) : (
           <ul className="divide-y divide-hairline">
@@ -297,7 +302,7 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
                     <StatusBadge status={document.status} />
                   </span>
                   <span className="text-right text-[12px] text-muted-foreground tabular-nums">
-                    {asRelativeTime(document.updatedAt)}
+                    {document.updatedLabel}
                   </span>
                   <span className="text-right">
                     {reviewable ? (
@@ -305,7 +310,7 @@ export function UploadClient({ recent }: { recent: DocumentListItem[] }) {
                         href={`/verify/${document.id}`}
                         className="text-[12.5px] font-medium text-navy hover:underline"
                       >
-                        Review
+                        {t("common.review")}
                       </Link>
                     ) : null}
                   </span>

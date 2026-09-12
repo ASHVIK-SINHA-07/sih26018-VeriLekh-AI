@@ -5,7 +5,7 @@
  * protocol using Node's built-in WebSocket, so no browser-automation package
  * is added to the project. Signs in first, then captures an authenticated page.
  *
- * Usage: node scripts/screenshot.mjs <path> <out.png> [email] [password]
+ * Usage: [SHOT_LANG=hi] node scripts/screenshot.mjs <path> <out.png> [email] [password]
  */
 import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -103,6 +103,11 @@ try {
     { width: WIDTH, height: HEIGHT, deviceScaleFactor: 2, mobile: WIDTH < 500 }, id);
   await cdp(ws, "Network.setCookie",
     { name: cookie.name, value: cookie.value, domain: "localhost", path: "/", httpOnly: true }, id);
+  // SHOT_LANG=hi|mr|bn|pa captures the page in that interface language.
+  if (process.env.SHOT_LANG) {
+    await cdp(ws, "Network.setCookie",
+      { name: "lang", value: process.env.SHOT_LANG, domain: "localhost", path: "/" }, id);
+  }
 
   await cdp(ws, "Page.navigate", { url: `${BASE}${targetPath}` }, id);
   await new Promise((resolve) => {

@@ -1,5 +1,7 @@
 import { signOut } from "@/lib/auth";
 import { SideRailNav } from "@/components/side-rail-nav";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { getI18n } from "@/i18n/server";
 import type { Role } from "@/types";
 
 /**
@@ -11,14 +13,8 @@ import type { Role } from "@/types";
  * enforce access (docs/03_Security_Access.md).
  */
 
-
-const ROLE_LABELS: Record<Role, string> = {
-  ADMIN: "Admin",
-  VERIFIER: "Verifier",
-  VIEWER: "Viewer",
-};
-
-export function SideRail({ name, role }: { name: string; role: Role }) {
+export async function SideRail({ name, role }: { name: string; role: Role }) {
+  const { t } = await getI18n();
   const initials = name
     .split(" ")
     .map((part) => part[0])
@@ -30,11 +26,11 @@ export function SideRail({ name, role }: { name: string; role: Role }) {
   return (
     <aside className="flex w-[248px] shrink-0 flex-col bg-rail text-rail-ink lg:w-[232px]">
       <div className="border-b border-white/10 px-5 py-5">
-        <p className="font-serif text-[17px] leading-tight">Land record</p>
-        <p className="font-serif text-[17px] leading-tight">digitization</p>
+        <p className="font-serif text-[17px] leading-tight">{t("app.nameLine1")}</p>
+        <p className="font-serif text-[17px] leading-tight">{t("app.nameLine2")}</p>
         <div className="mt-3 h-[2px] w-8 bg-terracotta" />
         <p className="mt-3 text-[10.5px] font-semibold tracking-[0.09em] text-rail-muted uppercase">
-          Revenue department
+          {t("app.department")}
         </p>
       </div>
 
@@ -49,7 +45,7 @@ export function SideRail({ name, role }: { name: string; role: Role }) {
           <span className="min-w-0">
             <span className="block truncate text-[13px] text-white">{name}</span>
             <span className="block text-[10.5px] font-semibold tracking-[0.09em] text-rail-muted uppercase">
-              {ROLE_LABELS[role]}
+              {t(`roles.${role}`)}
             </span>
           </span>
         </div>
@@ -63,9 +59,12 @@ export function SideRail({ name, role }: { name: string; role: Role }) {
             type="submit"
             className="mt-3 w-full border border-white/15 py-1.5 text-[12px] text-rail-muted transition-colors hover:border-white/35 hover:text-white"
           >
-            Log out
+            {t("nav.logout")}
           </button>
         </form>
+        <div className="mt-3">
+          <LanguageSwitcher />
+        </div>
       </div>
     </aside>
   );

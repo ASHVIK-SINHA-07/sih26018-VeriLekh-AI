@@ -4,16 +4,15 @@ import { Fragment, useState } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
-import { asPercent, asRelativeTime } from "@/lib/format";
+import { asPercent } from "@/lib/format";
+import { useI18n } from "@/i18n/client";
 import {
   EXTRACTED_FIELD_NAMES,
-  FIELD_LABELS,
   LOW_CONFIDENCE_THRESHOLD,
   REVIEWABLE_STATUSES,
   type ConfidenceMap,
   type DocumentStatus,
   type ExtractedFields,
-  type ValidationIssue,
 } from "@/types";
 
 /**
@@ -30,10 +29,12 @@ export interface ActivityRow {
   village: string | null;
   district: string | null;
   ulpin: string | null;
-  updatedAt: string;
+  /** "6 hours ago", written on the server — see verify-client's issueTexts. */
+  updatedLabel: string;
   fields: ExtractedFields | null;
   confidence: ConfidenceMap;
-  issues: ValidationIssue[];
+  /** Validation issues as sentences in the reader's language. */
+  issueTexts: string[];
 }
 
 export function ActivityTable({
@@ -44,18 +45,19 @@ export function ActivityTable({
   readOnly: boolean;
 }) {
   const [open, setOpen] = useState<string | null>(null);
+  const { t } = useI18n();
 
   return (
     <table className="w-full text-[13px]">
       <thead>
         <tr className="border-b border-hairline bg-panel-alt">
           <th className="w-8" />
-          <th className="label-cap px-3 py-2 text-left">Document</th>
-          <th className="label-cap hidden px-3 py-2 text-left md:table-cell">Village</th>
-          <th className="label-cap hidden px-3 py-2 text-left sm:table-cell">District</th>
-          <th className="label-cap hidden px-3 py-2 text-left lg:table-cell">ULPIN</th>
-          <th className="label-cap px-3 py-2 text-left">Status</th>
-          <th className="label-cap hidden px-3 py-2 text-right sm:table-cell">Updated</th>
+          <th className="label-cap px-3 py-2 text-left">{t("common.document")}</th>
+          <th className="label-cap hidden px-3 py-2 text-left md:table-cell">{t("common.village")}</th>
+          <th className="label-cap hidden px-3 py-2 text-left sm:table-cell">{t("common.district")}</th>
+          <th className="label-cap hidden px-3 py-2 text-left lg:table-cell">{t("common.ulpin")}</th>
+          <th className="label-cap px-3 py-2 text-left">{t("common.status")}</th>
+          <th className="label-cap hidden px-3 py-2 text-right sm:table-cell">{t("common.updated")}</th>
         </tr>
       </thead>
       <tbody>
@@ -84,7 +86,7 @@ export function ActivityTable({
                   <StatusBadge status={row.status} />
                 </td>
                 <td className="hidden px-3 py-2.5 text-right text-[12px] text-muted-foreground tabular-nums sm:table-cell">
-                  {asRelativeTime(row.updatedAt)}
+                  {row.updatedLabel}
                 </td>
               </tr>
 
@@ -99,10 +101,10 @@ export function ActivityTable({
                             typeof score === "number" && score < LOW_CONFIDENCE_THRESHOLD;
                           return (
                             <div key={field}>
-                              <p className="label-cap">{FIELD_LABELS[field]}</p>
+                              <p className="label-cap">{t(`fields.${field}`)}</p>
                               <p className="mt-0.5 text-[13px]">
                                 {row.fields?.[field] ?? (
-                                  <span className="text-status-flagged">not read</span>
+                                  <span className="text-status-flagged">{t("dashboard.notRead")}</span>
                                 )}
                               </p>
                               {typeof score === "number" ? (
@@ -118,15 +120,15 @@ export function ActivityTable({
                       </div>
                     ) : (
                       <p className="pl-8 text-[13px] text-muted-foreground">
-                        This document has not been read yet.
+                        {t("dashboard.notReadYet")}
                       </p>
                     )}
 
-                    {row.issues.length > 0 ? (
+                    {row.issueTexts.length > 0 ? (
                       <ul className="mt-4 space-y-1 border-l-2 border-status-flagged pl-3 sm:ml-8">
-                        {row.issues.map((issue, index) => (
+                        {row.issueTexts.map((text, index) => (
                           <li key={index} className="text-[12.5px] text-ink-2">
-                            {issue.issue}
+                            {text}
                           </li>
                         ))}
                       </ul>
@@ -137,7 +139,7 @@ export function ActivityTable({
                         href={`/verify/${row.id}`}
                         className="mt-4 ml-8 inline-block border border-navy px-3 py-1.5 text-[12.5px] font-medium text-navy transition-colors hover:bg-navy hover:text-white"
                       >
-                        Open for review
+                        {t("dashboard.openForReview")}
                       </Link>
                     ) : null}
                   </td>

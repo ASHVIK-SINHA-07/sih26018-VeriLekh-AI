@@ -353,6 +353,7 @@ Cross-source verification — RoR, registry, map   █████████�
 Chain of title — ownership replayed 2005–2025    ██████████  complete
 Mutation orders read from scans, into the chain  ██████████  complete
 District field-verification priority             ██████████  complete
+Interface in 5 languages — hi, mr, bn, pa, en    ██████████  complete, awaiting native review
 Append-only audit trail, hash-chained            ██████████  complete
 Role-based access control                        ██████████  complete
 Dashboards and reporting                         ██████████  complete

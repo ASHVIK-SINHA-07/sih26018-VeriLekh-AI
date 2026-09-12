@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { asPercent } from "@/lib/format";
 import { LOW_CONFIDENCE_THRESHOLD } from "@/types";
+import { useI18n } from "@/i18n/client";
 
 /**
  * FieldEditor — docs/04_Frontend_Spec.md shared components.
@@ -29,6 +30,7 @@ export function FieldEditor({
   edited?: boolean;
   onChange: (value: string) => void;
 }) {
+  const { t } = useI18n();
   const lowConfidence =
     typeof confidence === "number" && confidence < LOW_CONFIDENCE_THRESHOLD;
   const missing = value.trim().length === 0;
@@ -42,13 +44,13 @@ export function FieldEditor({
 
         {edited ? (
           <span className="text-xs font-medium text-status-verified">
-            Corrected
+            {t("verify.corrected")}
           </span>
         ) : typeof confidence === "number" ? (
           <span
             className={`text-[11px] tabular-nums ${lowConfidence ? "text-low-confidence" : "text-muted-foreground"}`}
           >
-            {asPercent(confidence)} confident
+            {t("verify.confident", { pct: asPercent(confidence) })}
           </span>
         ) : null}
       </div>
@@ -70,11 +72,11 @@ export function FieldEditor({
 
       {missing ? (
         <p className="text-xs text-status-flagged">
-          Nothing was read for this field — enter it from the scan
+          {t("verify.nothingRead")}
         </p>
       ) : lowConfidence && !edited ? (
         <p className="text-xs text-low-confidence">
-          Low confidence — check this against the scan
+          {t("verify.lowCheck")}
         </p>
       ) : null}
     </div>

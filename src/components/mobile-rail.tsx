@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
+import { useI18n } from "@/i18n/client";
 
 /**
  * The navigation rail on a small screen.
@@ -12,6 +13,7 @@ import { Menu, X } from "lucide-react";
  */
 export function MobileRail({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const { t } = useI18n();
 
   // A drawer that survives navigation is a trap on a phone.
   useEffect(() => {
@@ -34,14 +36,14 @@ export function MobileRail({ children }: { children: React.ReactNode }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Open navigation"
+          aria-label={t("nav.openNav")}
           aria-expanded={open}
           className="p-1 text-white/80 transition-colors hover:text-white"
         >
           <Menu className="size-5" />
         </button>
         <span className="font-serif text-[15px] text-white">
-          Land record digitization
+          {t("app.name")}
         </span>
       </div>
 
@@ -49,7 +51,7 @@ export function MobileRail({ children }: { children: React.ReactNode }) {
         <div className="fixed inset-0 z-50 flex lg:hidden">
           <button
             type="button"
-            aria-label="Close navigation"
+            aria-label={t("nav.closeNav")}
             onClick={() => setOpen(false)}
             className="absolute inset-0 bg-black/50"
           />
@@ -58,7 +60,7 @@ export function MobileRail({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => setOpen(false)}
-              aria-label="Close navigation"
+              aria-label={t("nav.closeNav")}
               className="absolute top-3 right-3 p-1 text-white/70 transition-colors hover:text-white"
             >
               <X className="size-5" />

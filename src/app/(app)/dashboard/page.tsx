@@ -10,7 +10,9 @@ import { StatCard } from "@/components/stat-card";
 import { Panel } from "@/components/panel";
 import { EmptyState } from "@/components/empty-state";
 import { DistrictRiskPanel } from "@/components/district-risk-panel";
-import { asCount } from "@/lib/format";
+import { getI18n } from "@/i18n/server";
+import { formatCount, formatDate, relativeTime, renderFinding } from "@/i18n/translate";
+import type { Metadata } from "next";
 import type {
   ConfidenceMap, ExtractedFields, ValidationIssue,
 } from "@/types";
@@ -18,7 +20,10 @@ import { TrendChart } from "./trend-chart";
 import { DistrictFilter } from "./district-filter";
 import { ActivityTable, type ActivityRow } from "./activity-table";
 
-export const metadata = { title: "Dashboard — Land record digitization" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("dashboard.metaTitle") };
+}
 export const dynamic = "force-dynamic";
 
 /** Screen 4 in docs/04_Frontend_Spec.md. Open to all three roles. */
@@ -31,6 +36,8 @@ export default async function DashboardPage({
   if (!session?.user) redirect("/login");
 
   const { district } = await searchParams;
+  const { t, locale } = await getI18n();
+  const asCount = (n: number) => formatCount(locale, n);
   const readOnly = session.user.role === "VIEWER";
 
   const [stats, learning, districtRisk, recent] = await Promise.all([
@@ -54,7 +61,7 @@ export default async function DashboardPage({
     village: row.record?.village ?? row.mutation?.village ?? null,
     district: row.record?.district ?? row.mutation?.district ?? null,
     ulpin: row.record?.ulpin ?? null,
-    updatedAt: row.updatedAt.toISOString(),
+    updatedLabel: relativeTime(locale, row.updatedAt),
     fields: row.record
       ? ({
           ownerName: row.record.ownerName, surveyNumber: row.record.surveyNumber,
@@ -65,19 +72,19 @@ export default async function DashboardPage({
         } satisfies ExtractedFields)
       : null,
     confidence: fromJson<ConfidenceMap>(row.record?.confidence, {}),
-    issues: fromJson<ValidationIssue[]>(row.validation?.issues, []),
+    issueTexts: fromJson<ValidationIssue[]>(row.validation?.issues, []).map((issue) =>
+      renderFinding(t, locale, issue),
+    ),
   }));
 
   return (
     <>
       <ScreenHeader
-        title="Dashboard"
-        subtitle={
-          (district
-            ? `Showing ${district} only.`
-            : "Digitization progress across all districts.") +
-          (readOnly ? " Read-only access." : "")
-        }
+        title={t("dashboard.title")}
+        subtitle={[
+          district ? t("dashboard.showingOnly", { district }) : t("dashboard.allDistricts"),
+          readOnly ? t("dashboard.readOnly") : "",
+        ].filter(Boolean).join(" ")}
       >
         <DistrictFilter districts={stats.byDistrict} />
       </ScreenHeader>
@@ -86,29 +93,29 @@ export default async function DashboardPage({
         {/* KPI strip */}
         <div className="grid grid-cols-1 divide-y divide-hairline border border-hairline bg-panel sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 sm:[&>*:nth-child(n+2)]:border-l sm:[&>*]:border-hairline lg:divide-x">
           <StatCard
-            label="Documents processed"
+            label={t("dashboard.processed")}
             value={asCount(stats.totalProcessed)}
-            hint="Read and checked by the pipeline"
+            hint={t("dashboard.processedHint")}
           />
           <StatCard
-            label="Mean data quality"
+            label={t("dashboard.quality")}
             value={asCount(stats.avgQuality)}
             hint={
               stats.lowQuality === 0
-                ? "Completeness, confidence and consistency"
-                : `${stats.lowQuality} record${stats.lowQuality === 1 ? "" : "s"} scoring poorly`
+                ? t("dashboard.qualityHint")
+                : t("dashboard.qualityLow", { count: stats.lowQuality })
             }
           />
           <StatCard
-            label="Pending verification"
+            label={t("dashboard.pending")}
             value={asCount(stats.pendingVerification)}
-            hint="Extracted cleanly, awaiting sign-off"
+            hint={t("dashboard.pendingHint")}
             tone="pending"
           />
           <StatCard
-            label="Flagged"
+            label={t("dashboard.flagged")}
             value={asCount(stats.flagged)}
-            hint="Problems found — needs correction"
+            hint={t("dashboard.flaggedHint")}
             tone="flagged"
           />
         </div>
@@ -118,40 +125,40 @@ export default async function DashboardPage({
             figure, and a fifth big number would flatten the strip above. */}
         {learning.distinctCorrections > 0 ? (
           <div className="border border-hairline bg-panel px-4 py-3 sm:px-5">
+            {/* Two labelled figures rather than one sentence with two numbers
+                in it: the sentence needs different grammar for every count in
+                every language, and the figures do not. */}
             <p className="text-[13.5px] text-foreground">
-              <span className="font-semibold">Learning from verification.</span>{" "}
-              Officers have corrected{" "}
-              <span className="font-semibold tabular-nums">{asCount(learning.distinctCorrections)}</span>{" "}
-              distinct misreading{learning.distinctCorrections === 1 ? "" : "s"}, and the
-              pipeline has since applied {learning.timesApplied === 0 ? "none of them" : <>them <span className="font-semibold tabular-nums">{asCount(learning.timesApplied)}</span> time{learning.timesApplied === 1 ? "" : "s"}</>}{" "}
-              without anyone being asked twice.
+              <span className="font-semibold">{t("dashboard.learningTitle")}</span>{" "}
+              {t("dashboard.learningCorrected")}{" "}
+              <span className="font-semibold tabular-nums">{asCount(learning.distinctCorrections)}</span>
+              {" · "}
+              {t("dashboard.learningApplied")}{" "}
+              <span className="font-semibold tabular-nums">{asCount(learning.timesApplied)}</span>
             </p>
-            <p className="mt-1 text-[12.5px] text-ink-2">
-              Every substitution is one a revenue officer made and approved. None are invented,
-              and each one is shown to the next reviewer who sees it applied.
-            </p>
+            <p className="mt-1 text-[12.5px] text-ink-2">{t("dashboard.learningNote")}</p>
           </div>
         ) : null}
 
         <Panel
-          title="Documents processed over time"
-          meta="Last 14 days"
+          title={t("dashboard.trendTitle")}
+          meta={t("dashboard.trendMeta")}
           bodyClassName="px-4 pt-4 pb-2"
         >
-          <TrendChart data={stats.trend} />
+          <TrendChart data={stats.trend.map((point) => ({ ...point, label: formatDate(locale, point.date, "short") }))} />
         </Panel>
 
         <DistrictRiskPanel rows={districtRisk} />
 
         <Panel
-          title="Recent activity"
-          meta={`${rows.length} most recent · select a row for detail`}
+          title={t("dashboard.recentTitle")}
+          meta={t("dashboard.recentMeta", { count: rows.length })}
         >
           {rows.length === 0 ? (
             <div className="p-6">
               <EmptyState
-                title="No records yet"
-                hint={district ? `Nothing recorded for ${district}.` : "Upload a scanned record to begin."}
+                title={t("dashboard.emptyTitle")}
+                hint={district ? t("dashboard.emptyForDistrict", { district }) : t("dashboard.emptyHint")}
               />
             </div>
           ) : (

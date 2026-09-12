@@ -3,7 +3,8 @@
 import { AuthError } from "next-auth";
 import { signIn } from "@/lib/auth";
 
-export type LoginState = { error: string | null };
+/** A code, not a sentence — the form says it in the reader's language. */
+export type LoginState = { error: "missing" | "invalid" | null };
 
 /**
  * Sign-in server action.
@@ -23,7 +24,7 @@ export async function login(
   const password = String(formData.get("password") ?? "");
 
   if (!email || !password) {
-    return { error: "Enter both your email and password" };
+    return { error: "missing" };
   }
 
   try {
@@ -31,7 +32,7 @@ export async function login(
   } catch (error) {
     // signIn throws a redirect on success; that must propagate untouched.
     if (error instanceof AuthError) {
-      return { error: "Incorrect email or password" };
+      return { error: "invalid" };
     }
     throw error;
   }

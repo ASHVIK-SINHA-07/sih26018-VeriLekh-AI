@@ -5,8 +5,14 @@ import { fromJson } from "@/lib/json";
 import { ScreenHeader } from "@/components/screen-header";
 import { REVIEWABLE_STATUSES, type ValidationIssue } from "@/types";
 import { QueueTable, type QueueRow } from "./queue-table";
+import { getI18n } from "@/i18n/server";
+import { relativeTime, renderFinding } from "@/i18n/translate";
+import type { Metadata } from "next";
 
-export const metadata = { title: "Verification — Land record digitization" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("queue.metaTitle") };
+}
 export const dynamic = "force-dynamic";
 
 /**
@@ -29,6 +35,7 @@ export default async function VerifyQueuePage() {
     orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
   });
 
+  const { t, locale } = await getI18n();
   const rows: QueueRow[] = documents.map((row) => {
     const issues = fromJson<ValidationIssue[]>(row.validation?.issues, []);
     return {
@@ -38,9 +45,9 @@ export default async function VerifyQueuePage() {
       // A mutation order carries its parcel's place on its own reading.
       village: row.record?.village ?? row.mutation?.village ?? null,
       district: row.record?.district ?? row.mutation?.district ?? null,
-      updatedAt: row.updatedAt.toISOString(),
+      updatedLabel: relativeTime(locale, row.updatedAt),
       issueCount: issues.length,
-      topIssue: issues[0]?.issue ?? null,
+      topIssue: issues[0] ? renderFinding(t, locale, issues[0]) : null,
     };
   });
 
@@ -49,11 +56,11 @@ export default async function VerifyQueuePage() {
   return (
     <>
       <ScreenHeader
-        title="Verification queue"
+        title={t("queue.title")}
         subtitle={
           rows.length === 0
-            ? "Nothing is waiting for review."
-            : `${rows.length} record${rows.length === 1 ? "" : "s"} awaiting review — ${flagged} with problems found.`
+            ? t("queue.nothingWaiting")
+            : t("queue.summary", { count: rows.length, flagged })
         }
       />
       <div className="p-4 sm:p-7">

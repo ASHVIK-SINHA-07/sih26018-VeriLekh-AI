@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { Maximize2, Minus, Plus } from "lucide-react";
+import { useI18n } from "@/i18n/client";
 
 /**
  * The scanned record, zoomable and pannable.
@@ -25,6 +26,7 @@ export function ScanViewer({
   filename: string;
   isPdf: boolean;
 }) {
+  const { t } = useI18n();
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const dragging = useRef<{ x: number; y: number } | null>(null);
@@ -48,11 +50,11 @@ export function ScanViewer({
         data={src}
         type="application/pdf"
         className="h-[34rem] w-full bg-panel-alt"
-        aria-label={`Scan of ${filename}`}
+        aria-label={t("scan.alt", { filename })}
       >
         <p className="p-4 text-[13px] text-muted-foreground">
-          This PDF cannot be shown inline.{" "}
-          <a href={src} className="text-navy underline">Open it directly</a>.
+          {t("scan.pdfFallback")}{" "}
+          <a href={src} className="text-navy underline">{t("scan.openDirectly")}</a>
         </p>
       </object>
     );
@@ -91,7 +93,7 @@ export function ScanViewer({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
-          alt={`Scan of ${filename}`}
+          alt={t("scan.alt", { filename })}
           draggable={false}
           className="h-full w-full origin-center object-contain transition-transform duration-100 select-none"
           style={{
@@ -105,7 +107,7 @@ export function ScanViewer({
           type="button"
           onClick={() => changeZoom(zoom - STEP)}
           disabled={zoom <= MIN}
-          aria-label="Zoom out"
+          aria-label={t("scan.zoomOut")}
           className="px-2 py-1.5 text-ink-2 transition-colors hover:bg-panel-alt disabled:opacity-35"
         >
           <Minus className="size-3.5" />
@@ -117,7 +119,7 @@ export function ScanViewer({
           type="button"
           onClick={() => changeZoom(zoom + STEP)}
           disabled={zoom >= MAX}
-          aria-label="Zoom in"
+          aria-label={t("scan.zoomIn")}
           className="px-2 py-1.5 text-ink-2 transition-colors hover:bg-panel-alt disabled:opacity-35"
         >
           <Plus className="size-3.5" />
@@ -125,7 +127,7 @@ export function ScanViewer({
         <button
           type="button"
           onClick={reset}
-          aria-label="Fit to width"
+          aria-label={t("scan.fit")}
           className="border-l border-rule px-2 py-1.5 text-ink-2 transition-colors hover:bg-panel-alt"
         >
           <Maximize2 className="size-3.5" />

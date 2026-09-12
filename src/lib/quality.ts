@@ -85,7 +85,16 @@ export interface QualityComponent {
   weight: number;
   /** One line a person can read. */
   detail: string;
+  /** The same line as a message code and values, for translation. */
+  detailCode: "completeness" | "confidence" | "confidenceNone" | "consistency" | "consistencyNone";
+  detailParams: Record<string, number>;
 }
+
+/** A deduction, structured so the interface can say it in any language. */
+export type Deduction =
+  | { kind: "missingFields"; fields: string[] }
+  | { kind: "lowFields"; fields: string[] }
+  | { kind: "issue"; issue: ValidationIssue };
 
 export interface QualityScore {
   /** 0–100. Rounded — this is rendered, and CLAUDE.md forbids float artefacts. */
@@ -98,6 +107,8 @@ export interface QualityScore {
   };
   /** Everything that cost the record points, worst first. */
   deductions: string[];
+  /** The same deductions, structured for translation. */
+  deductionItems: Deduction[];
 }
 
 /** Fields that make up a usable Record of Rights entry. */
@@ -128,6 +139,7 @@ export interface QualityInput {
 
 export function scoreRecord({ fields, confidence, issues }: QualityInput): QualityScore {
   const deductions: string[] = [];
+  const deductionItems: Deduction[] = [];
 
   /* ------------------------------------------------------- completeness */
   const present = SCORED_FIELDS.filter((f) => {
@@ -141,6 +153,7 @@ export function scoreRecord({ fields, confidence, issues }: QualityInput): Quali
       `${missing.length} field${missing.length === 1 ? "" : "s"} not extracted: ` +
       missing.map((f) => FIELD_LABELS[f]).join(", "),
     );
+    deductionItems.push({ kind: "missingFields", fields: missing });
   }
 
   /* --------------------------------------------------------- confidence */
@@ -172,6 +185,7 @@ export function scoreRecord({ fields, confidence, issues }: QualityInput): Quali
       `${uncertain.length} field${uncertain.length === 1 ? "" : "s"} read with low confidence: ` +
       uncertain.map((f) => FIELD_LABELS[f]).join(", "),
     );
+    deductionItems.push({ kind: "lowFields", fields: uncertain });
   }
 
   /* -------------------------------------------------------- consistency */
@@ -187,6 +201,7 @@ export function scoreRecord({ fields, confidence, issues }: QualityInput): Quali
     (a, b) => PENALTY[b.kind as IssueKind] - PENALTY[a.kind as IssueKind],
   )) {
     deductions.push(issue.issue);
+    deductionItems.push({ kind: "issue", issue });
   }
 
   /* -------------------------------------------------------------- total */
@@ -205,6 +220,8 @@ export function scoreRecord({ fields, confidence, issues }: QualityInput): Quali
         score: completeness,
         weight: WEIGHTS.completeness,
         detail: `${present.length} of ${SCORED_FIELDS.length} fields extracted`,
+        detailCode: "completeness",
+        detailParams: { present: present.length, total: SCORED_FIELDS.length },
       },
       confidence: {
         score: confidenceScore,
@@ -212,6 +229,8 @@ export function scoreRecord({ fields, confidence, issues }: QualityInput): Quali
         detail: scores.length === 0
           ? "nothing was read"
           : `mean ${confidenceScore}% across the fields that were read`,
+        detailCode: scores.length === 0 ? "confidenceNone" : "confidence",
+        detailParams: { pct: confidenceScore },
       },
       consistency: {
         score: consistency,
@@ -219,8 +238,11 @@ export function scoreRecord({ fields, confidence, issues }: QualityInput): Quali
         detail: counted.length === 0
           ? "nothing on file contradicts this record"
           : `${counted.length} contradiction${counted.length === 1 ? "" : "s"} — with other records, other systems or the ownership history`,
+        detailCode: counted.length === 0 ? "consistencyNone" : "consistency",
+        detailParams: { count: counted.length },
       },
     },
     deductions,
+    deductionItems,
   };
 }

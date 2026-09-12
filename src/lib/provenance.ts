@@ -82,6 +82,8 @@ export type ChainVerdict =
       brokenAtSeq: number;
       brokenEntryId: string;
       reason: string;
+      /** For the interface's translations. */
+      reasonCode: "unhashed" | "unlinked" | "altered";
     };
 
 /**
@@ -102,6 +104,7 @@ export function verifyChain(entries: StoredEntry[]): ChainVerdict {
         intact: false, entries: ordered.length, head: prev,
         brokenAtSeq: entry.seq, brokenEntryId: entry.id,
         reason: "Entry carries no hash — it was written outside the audit API.",
+        reasonCode: "unhashed",
       };
     }
     if (entry.prevHash !== prev) {
@@ -110,6 +113,7 @@ export function verifyChain(entries: StoredEntry[]): ChainVerdict {
         brokenAtSeq: entry.seq, brokenEntryId: entry.id,
         reason:
           "Entry does not link to the one before it — an entry has been removed, reordered or inserted.",
+        reasonCode: "unlinked",
       };
     }
     const recomputed = entryHash(entry, prev);
@@ -118,6 +122,7 @@ export function verifyChain(entries: StoredEntry[]): ChainVerdict {
         intact: false, entries: ordered.length, head: prev,
         brokenAtSeq: entry.seq, brokenEntryId: entry.id,
         reason: "Entry content does not match its hash — this entry has been altered since it was written.",
+        reasonCode: "altered",
       };
     }
     prev = entry.hash;

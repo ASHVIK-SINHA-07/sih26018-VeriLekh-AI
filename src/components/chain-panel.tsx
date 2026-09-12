@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { MUTATION_LABELS, type ChainAnalysis, type ChainFinding } from "@/lib/chain";
+import type { ChainAnalysis, ChainFinding } from "@/lib/chain";
+import { getI18n } from "@/i18n/server";
+import { formatDate, renderFinding } from "@/i18n/translate";
 
 /**
  * Chain of title — how this parcel came to be owned by whoever owns it now.
@@ -11,20 +13,20 @@ import { MUTATION_LABELS, type ChainAnalysis, type ChainFinding } from "@/lib/ch
  * wrong" is the question the reviewer actually has to answer.
  */
 
-const DATE = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
-const d = (date: Date) => DATE.format(date);
+/** Stands in for the struck-through share inside a translated sentence. */
+const MARK = "\u0001";
 
-function FindingLine({ f }: { f: ChainFinding }) {
+function FindingLine({ text, critical }: { text: string; critical: boolean }) {
   return (
-    <p className={`mt-1 text-[12.5px] leading-snug ${f.severity === "critical" ? "text-status-flagged" : "text-low-confidence"}`}>
-      {f.severity === "critical" ? "✕ " : "! "}
-      {f.message}
+    <p className={`mt-1 text-[12.5px] leading-snug ${critical ? "text-status-flagged" : "text-low-confidence"}`}>
+      {critical ? "✕ " : "! "}
+      {text}
     </p>
   );
 }
 
-export function ChainPanel({
-  chain, khasra, title = "Chain of title", note, highlightId, currentDocumentId,
+export async function ChainPanel({
+  chain, khasra, title: titleProp, note, highlightId, currentDocumentId,
 }: {
   chain: ChainAnalysis;
   khasra: string | null;
@@ -36,6 +38,13 @@ export function ChainPanel({
   /** The document on screen, so its own entry is not linked to itself. */
   currentDocumentId?: string;
 }) {
+  const { t, locale } = await getI18n();
+  const title = titleProp ?? t("chain.title");
+  const d = (date: Date) => formatDate(locale, date);
+  const line = (f: ChainFinding, key: number) => (
+    <FindingLine key={key} text={renderFinding(t, locale, f)} critical={f.severity === "critical"} />
+  );
+
   if (chain.status === "EMPTY") {
     return (
       <div className="border border-hairline border-l-[3px] border-l-hairline-2 bg-panel">
@@ -43,8 +52,7 @@ export function ChainPanel({
           <p className="text-[13.5px] font-semibold text-foreground">{title}</p>
         </div>
         <p className="px-4 py-3 text-[12.5px] text-ink-2">
-          No mutation history has been digitised for {khasra ? `khasra ${khasra}` : "this parcel"} yet.
-          Ownership can only be traced once its entries in the mutation register are read in.
+          {khasra ? t("chain.empty", { khasra }) : t("chain.emptyNoKhasra")}
         </p>
       </div>
     );
@@ -78,8 +86,11 @@ export function ChainPanel({
           {title}
           {chain.span ? (
             <span className="font-normal text-ink-2">
-              {" "}— {chain.span.from.getUTCFullYear()} to {chain.span.to.getUTCFullYear()}, {chain.steps.length}{" "}
-              {chain.steps.length === 1 ? "entry" : "entries"}
+              {" "}— {t("chain.span", {
+                from: chain.span.from.getUTCFullYear(),
+                to: chain.span.to.getUTCFullYear(),
+                count: chain.steps.length,
+              })}
             </span>
           ) : null}
         </p>
@@ -89,10 +100,10 @@ export function ChainPanel({
           }`}
         >
           {!defective
-            ? "Unbroken"
+            ? t("chain.unbroken")
             : critical > 0
-              ? `${critical} ${critical === 1 ? "break" : "breaks"} in the chain`
-              : "Needs a look"}
+              ? t("chain.breaks", { count: critical })
+              : t("chain.needsLook")}
         </p>
       </div>
 
@@ -115,34 +126,39 @@ export function ChainPanel({
               <div className="w-[92px] shrink-0 pt-px text-[12px] tabular-nums text-ink-3">{d(m.effectiveDate)}</div>
               <div className="min-w-0 flex-1">
                 <p className={`text-[13px] ${bad ? "text-status-flagged" : "text-foreground"}`}>
-                  <span className="font-semibold">{MUTATION_LABELS[m.type]}</span>
+                  <span className="font-semibold">{t(`mutationTypes.${m.type}`)}</span>
                   {m.fromOwner ? <> · {m.fromOwner} → </> : <> · </>}
                   <span className="font-medium">{m.toOwner}</span>
-                  <span className="text-ink-2"> · {m.share === "1" ? "whole parcel" : `${m.share} share`}</span>
-                  {!applied ? <span className="text-status-flagged"> · not applied</span> : null}
+                  <span className="text-ink-2"> · {m.share === "1" ? t("chain.wholeParcel") : t("chain.shareOf", { share: m.share })}</span>
+                  {!applied ? <span className="text-status-flagged"> · {t("chain.notApplied")}</span> : null}
                 </p>
                 <p className="mt-0.5 text-[11.5px] text-ink-3">
-                  {m.mutationNumber ? `Mutation ${m.mutationNumber}` : "No mutation number"}
-                  {` · entry ${m.seq}`}
-                  {` · digitised ${d(m.recordedAt)}`}
-                  {m.id === highlightId ? <span className="font-semibold text-navy"> · this order</span> : null}
+                  {m.mutationNumber ? t("chain.mutationNumber", { number: m.mutationNumber }) : t("chain.noNumber")}
+                  {` · ${t("chain.entry", { seq: m.seq })}`}
+                  {` · ${t("chain.digitised", { date: d(m.recordedAt) })}`}
+                  {m.id === highlightId ? <span className="font-semibold text-navy"> · {t("chain.thisOrder")}</span> : null}
                   {m.sourceDocumentId && m.sourceDocumentId !== currentDocumentId ? (
                     <>
                       {" · "}
                       <Link href={`/verify/${m.sourceDocumentId}`} className="text-navy underline underline-offset-2">
-                        read from scan
+                        {t("chain.readFromScan")}
                       </Link>
                     </>
                   ) : null}
                 </p>
-                {replaced ? (
-                  <p className="mt-1 text-[11.5px] text-ink-2">
-                    Corrected — first read as{" "}
-                    <span className="line-through">{replaced.share} share</span> on {d(replaced.recordedAt)}; the earlier
-                    reading is kept in the register, not overwritten.
-                  </p>
-                ) : null}
-                {findings.map((f, i) => <FindingLine key={i} f={f} />)}
+                {replaced ? (() => {
+                  // The old share is struck through wherever the language
+                  // puts it in the sentence.
+                  const [before, after = ""] = t("chain.corrected", { old: MARK, date: d(replaced.recordedAt) }).split(MARK);
+                  return (
+                    <p className="mt-1 text-[11.5px] text-ink-2">
+                      {before}
+                      <span className="line-through">{t("chain.shareOf", { share: replaced.share })}</span>
+                      {after}
+                    </p>
+                  );
+                })() : null}
+                {findings.map(line)}
               </div>
             </li>
           );
@@ -151,18 +167,18 @@ export function ChainPanel({
 
       {wholeChain.length > 0 ? (
         <div className="border-t border-hairline px-4 py-2.5">
-          {wholeChain.map((f, i) => <FindingLine key={i} f={f} />)}
+          {wholeChain.map(line)}
         </div>
       ) : null}
 
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-t border-hairline px-4 py-3">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.09em] text-ink-3">Holds today</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.09em] text-ink-3">{t("chain.holdsToday")}</span>
         <span className="text-[12.5px] text-foreground">
           {chain.currentHolders.length === 0
-            ? "nobody — the chain does not resolve to an owner"
-            : chain.currentHolders.map((h) => `${h.owner} (${h.share === "1" ? "whole" : h.share})`).join(" · ")}
+            ? t("chain.holdsNobody")
+            : chain.currentHolders.map((h) => `${h.owner} (${h.share === "1" ? t("chain.whole") : h.share})`).join(" · ")}
         </span>
-        <span className="text-[11.5px] text-ink-3">· demo chains are synthetic</span>
+        <span className="text-[11.5px] text-ink-3">· {t("chain.synthetic")}</span>
       </div>
     </div>
   );

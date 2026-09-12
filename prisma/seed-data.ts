@@ -54,7 +54,7 @@ export interface SeedDoc {
   ulpin: string | null;
   validation: {
     status: SeedValidationStatus;
-    issues: { field: string; issue: string; kind?: IssueKind }[];
+    issues: { field: string; issue: string; kind?: IssueKind; code?: string; params?: Record<string, string | number> }[];
     duplicateOfKey?: string;
   } | null;
   /** Audit entries, oldest first. Every document has at least an UPLOAD. */
@@ -228,7 +228,7 @@ export const SEED_DOCS: SeedDoc[] = [
       status: "DUPLICATE",
       duplicateOfKey: "varanasi-0412",
       issues: [
-        { field: "khasraNumber", kind: "duplicate", issue: "Duplicate parcel — khasra 142/3 in रामपुर खुर्द is already recorded under ULPIN UP62B4F19C83A7" },
+        { field: "khasraNumber", kind: "duplicate", issue: "Duplicate parcel — khasra 142/3 in रामपुर खुर्द is already recorded under ULPIN UP62B4F19C83A7", code: "duplicateUlpin", params: { khasra: "142/3", village: "रामपुर खुर्द", ulpin: "UP62B4F19C83A7" } },
       ],
     },
     audit: [{ action: "UPLOAD", daysAgo: 3, by: "VERIFIER" }],
@@ -248,8 +248,8 @@ export const SEED_DOCS: SeedDoc[] = [
     validation: {
       status: "FLAGGED",
       issues: [
-        { field: "ownerName", kind: "ownerConflict", issue: "Owner name conflicts with the existing record for khata 214 (सुनीता देवी मिश्रा)" },
-        { field: "ownerName", kind: "confidence", issue: "Low confidence — 64%" },
+        { field: "ownerName", kind: "ownerConflict", issue: "Owner name conflicts with the existing record for khata 214 (सुनीता देवी मिश्रा)", code: "ownerConflict", params: { khata: "214", owner: "सुनीता देवी मिश्रा" } },
+        { field: "ownerName", kind: "confidence", issue: "Low confidence — 64%", code: "lowConfidence", params: { field: "ownerName", pct: 64 } },
       ],
     },
     audit: [{ action: "UPLOAD", daysAgo: 3, by: "VERIFIER" }],
@@ -268,7 +268,7 @@ export const SEED_DOCS: SeedDoc[] = [
     ulpin: null,
     validation: {
       status: "FLAGGED",
-      issues: [{ field: "khataNumber", kind: "missing", issue: "Khata number is missing" }],
+      issues: [{ field: "khataNumber", kind: "missing", issue: "Khata number is missing", code: "missing", params: { field: "khataNumber" } }],
     },
     audit: [{ action: "UPLOAD", daysAgo: 2, by: "VERIFIER" }],
     note: "PLANTED #3 — missing required field.",
@@ -291,10 +291,10 @@ export const SEED_DOCS: SeedDoc[] = [
     validation: {
       status: "FLAGGED",
       issues: [
-        { field: "ownerName", kind: "confidence", issue: "Low confidence — 58%" },
-        { field: "khasraNumber", kind: "confidence", issue: "Low confidence — 61%" },
-        { field: "plotArea", kind: "confidence", issue: "Low confidence — 66%" },
-        { field: "landClassification", kind: "confidence", issue: "Low confidence — 71%" },
+        { field: "ownerName", kind: "confidence", issue: "Low confidence — 58%", code: "lowConfidence", params: { field: "ownerName", pct: 58 } },
+        { field: "khasraNumber", kind: "confidence", issue: "Low confidence — 61%", code: "lowConfidence", params: { field: "khasraNumber", pct: 61 } },
+        { field: "plotArea", kind: "confidence", issue: "Low confidence — 66%", code: "lowConfidence", params: { field: "plotArea", pct: 66 } },
+        { field: "landClassification", kind: "confidence", issue: "Low confidence — 71%", code: "lowConfidence", params: { field: "landClassification", pct: 71 } },
       ],
     },
     audit: [{ action: "UPLOAD", daysAgo: 1, by: "VERIFIER" }],
@@ -316,8 +316,8 @@ export const SEED_DOCS: SeedDoc[] = [
     validation: {
       status: "FLAGGED",
       issues: [
-        { field: "khataNumber", kind: "confidence", issue: "Low confidence — 68%" },
-        { field: "plotArea", kind: "confidence", issue: "Low confidence — 73%" },
+        { field: "khataNumber", kind: "confidence", issue: "Low confidence — 68%", code: "lowConfidence", params: { field: "khataNumber", pct: 68 } },
+        { field: "plotArea", kind: "confidence", issue: "Low confidence — 73%", code: "lowConfidence", params: { field: "plotArea", pct: 73 } },
       ],
     },
     audit: [{ action: "UPLOAD", daysAgo: 1, by: "VERIFIER" }],
@@ -336,8 +336,8 @@ export const SEED_DOCS: SeedDoc[] = [
     validation: {
       status: "FLAGGED",
       issues: [
-        { field: "surveyNumber", kind: "confidence", issue: "Low confidence — 70%" },
-        { field: "landClassification", kind: "confidence", issue: "Low confidence — 74%" },
+        { field: "surveyNumber", kind: "confidence", issue: "Low confidence — 70%", code: "lowConfidence", params: { field: "surveyNumber", pct: 70 } },
+        { field: "landClassification", kind: "confidence", issue: "Low confidence — 74%", code: "lowConfidence", params: { field: "landClassification", pct: 74 } },
       ],
     },
     audit: [{ action: "UPLOAD", daysAgo: 0, by: "ADMIN" }],
@@ -390,7 +390,7 @@ export const SEED_DOCS: SeedDoc[] = [
     ulpin: null,
     validation: {
       status: "FLAGGED",
-      issues: [{ field: "ownerName", kind: "range", issue: "Scan quality too poor to extract reliably" }],
+      issues: [{ field: "ownerName", kind: "range", issue: "Scan quality too poor to extract reliably", code: "scanTooPoor" }],
     },
     audit: [
       { action: "UPLOAD", daysAgo: 6, by: "VERIFIER" },

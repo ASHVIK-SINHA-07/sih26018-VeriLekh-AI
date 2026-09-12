@@ -2,10 +2,15 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ScreenHeader } from "@/components/screen-header";
-import { UploadClient } from "./upload-client";
-import type { DocumentListItem } from "@/types";
+import { UploadClient, type RecentUpload } from "./upload-client";
+import { getI18n } from "@/i18n/server";
+import { relativeTime } from "@/i18n/translate";
+import type { Metadata } from "next";
 
-export const metadata = { title: "Upload — Land record digitization" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("upload.metaTitle") };
+}
 
 /** Always read fresh: the list changes on every upload. */
 export const dynamic = "force-dynamic";
@@ -27,19 +32,21 @@ export default async function UploadPage() {
     include: { record: { select: { district: true } } },
   });
 
-  const recent: DocumentListItem[] = rows.map((row) => ({
+  const { t, locale } = await getI18n();
+  const recent: RecentUpload[] = rows.map((row) => ({
     id: row.id,
     filename: row.filename,
     status: row.status,
     district: row.record?.district ?? null,
     updatedAt: row.updatedAt.toISOString(),
+    updatedLabel: relativeTime(locale, row.updatedAt),
   }));
 
   return (
     <>
       <ScreenHeader
-        title="Upload records"
-        subtitle="Each record is read, extracted and checked automatically, then queued for review."
+        title={t("upload.title")}
+        subtitle={t("upload.subtitle")}
       />
       <div className="p-4 sm:p-7">
         <UploadClient recent={recent} />

@@ -66,6 +66,8 @@ export async function runExtraction(documentId: string): Promise<ExtractResponse
   for (const c of applied) {
     validation.issues.push({
       field: c.field,
+      code: "learned",
+      params: { from: c.from, to: c.to, count: c.occurrences },
       issue:
         `Corrected automatically — read as "${c.from}", replaced with ` +
         `"${c.to}". Officers have made this same correction ` +

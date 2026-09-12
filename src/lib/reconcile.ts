@@ -74,6 +74,9 @@ export interface FieldFinding {
   agreement: Agreement;
   /** One line a reviewer reads. Only set when something is wrong. */
   message?: string;
+  /** Message code and values for the interface's translations. */
+  code?: string;
+  params?: Record<string, string | number>;
 }
 
 export interface ReconciliationSummary {
@@ -131,6 +134,8 @@ export function reconciliationIssues(result: ReconciliationSummary): ValidationI
       field: c.field,
       kind: "sourceConflict" as const,
       issue: c.message as string,
+      code: c.code,
+      params: c.params,
     }));
 
   for (const s of result.stale) {
@@ -138,6 +143,8 @@ export function reconciliationIssues(result: ReconciliationSummary): ValidationI
       field: "ownerName",
       kind: "sourceStale",
       issue: `${SOURCE_LABELS[s.source]} has not been updated in ${s.years} years — an ownership change may never have been mutated`,
+      code: "reconStale",
+      params: { source: s.source, years: s.years },
     });
   }
 
@@ -172,6 +179,7 @@ export function reconcile({ fields, sources, now = new Date() }: ReconcileInput)
         findings.push({
           field, ours: null, source: row.source, theirs, agreement: "differs",
           message: `${FIELD_LABELS[field]} is missing from this scan, but ${SOURCE_LABELS[row.source]} holds "${theirs}"`,
+          code: "reconMissingHere", params: { field, source: row.source, value: theirs },
         });
         continue;
       }
@@ -184,6 +192,8 @@ export function reconcile({ fields, sources, now = new Date() }: ReconcileInput)
           message: same
             ? undefined
             : `Plot area differs from ${SOURCE_LABELS[row.source]} — this scan reads ${ours} ha, that record holds ${theirs} ha (${detail} apart)`,
+          code: same ? undefined : "reconArea",
+          params: same ? undefined : { source: row.source, ours, theirs, pct: detail },
         });
         continue;
       }
@@ -202,6 +212,8 @@ export function reconcile({ fields, sources, now = new Date() }: ReconcileInput)
               : agreement === "differs"
                 ? `Owner differs from ${SOURCE_LABELS[row.source]} — that record holds "${theirs}"`
                 : `Owner name reads differently from ${SOURCE_LABELS[row.source]} ("${theirs}") — likely a misreading, confirm against the scan`,
+          code: agreement === "agrees" ? undefined : agreement === "differs" ? "reconOwnerDiffers" : "reconOwnerVariant",
+          params: agreement === "agrees" ? undefined : { source: row.source, theirs },
         });
         continue;
       }
@@ -213,6 +225,8 @@ export function reconcile({ fields, sources, now = new Date() }: ReconcileInput)
         message: same
           ? undefined
           : `${FIELD_LABELS[field]} differs from ${SOURCE_LABELS[row.source]} — that record holds "${theirs}"`,
+        code: same ? undefined : "reconFieldDiffers",
+        params: same ? undefined : { field, source: row.source, theirs: String(theirs) },
       });
     }
   }

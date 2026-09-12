@@ -233,7 +233,7 @@ export function validateMutationOrder({ fields, confidence, existing, now = new 
 
   for (const f of REQUIRED) {
     if (!fields[f]?.trim()) {
-      issues.push({ field: f, kind: "missing", issue: `${MUTATION_FIELD_LABELS[f]} is missing` });
+      issues.push({ field: f, kind: "missing", issue: `${MUTATION_FIELD_LABELS[f]} is missing`, code: "orderMissing", params: { field: f } });
     }
   }
 
@@ -242,26 +242,27 @@ export function validateMutationOrder({ fields, confidence, existing, now = new 
     issues.push({
       field: "mutationType", kind: "range",
       issue: `"${fields.mutationType}" is not a recognised type of transfer — expected sale, inheritance, gift, partition or decree`,
+      code: "orderBadType", params: { value: fields.mutationType },
     });
   }
   if (type && type !== "ORIGINAL" && !fields.fromOwner?.trim()) {
-    issues.push({ field: "fromOwner", kind: "missing", issue: "A transfer must name who it is from" });
+    issues.push({ field: "fromOwner", kind: "missing", issue: "A transfer must name who it is from", code: "orderNoTransferor" });
   }
 
   const date = parseOrderDate(fields.orderDate);
   if (fields.orderDate && !date) {
-    issues.push({ field: "orderDate", kind: "range", issue: `"${fields.orderDate}" is not a valid date` });
+    issues.push({ field: "orderDate", kind: "range", issue: `"${fields.orderDate}" is not a valid date`, code: "orderBadDate", params: { value: fields.orderDate } });
   }
 
   const share = normaliseShare(fields.share);
   if (fields.share && !share) {
-    issues.push({ field: "share", kind: "range", issue: `"${fields.share}" is not a share of the parcel` });
+    issues.push({ field: "share", kind: "range", issue: `"${fields.share}" is not a share of the parcel`, code: "orderBadShare", params: { value: fields.share } });
   }
 
   for (const [f, score] of Object.entries(confidence)) {
     if (typeof score === "number" && score < LOW_CONFIDENCE_THRESHOLD) {
       const label = MUTATION_FIELD_LABELS[f as MutationFieldName] ?? f;
-      issues.push({ field: f, kind: "confidence", issue: `${label} read with low confidence — ${Math.round(score * 100)}%` });
+      issues.push({ field: f, kind: "confidence", issue: `${label} read with low confidence — ${Math.round(score * 100)}%`, code: "orderLowConfidence", params: { field: f, pct: Math.round(score * 100) } });
     }
   }
 
@@ -299,6 +300,8 @@ export function validateMutationOrder({ fields, confidence, existing, now = new 
         field: "fromOwner",
         kind: f.severity === "critical" ? "chainDefect" : "chainWarning",
         issue: f.message,
+        code: f.code ?? f.kind,
+        params: f.params,
       });
     }
   }

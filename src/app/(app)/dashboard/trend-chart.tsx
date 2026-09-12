@@ -3,6 +3,7 @@
 import {
   Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import { useI18n } from "@/i18n/client";
 
 /**
  * Documents processed per day — docs/04_Frontend_Spec.md screen 4.
@@ -11,15 +12,11 @@ import {
 export function TrendChart({
   data,
 }: {
-  data: { date: string; count: number }[];
+  /** `label` is the day written on the server, in the reader's language. */
+  data: { date: string; count: number; label: string }[];
 }) {
-  const shaped = data.map((point) => ({
-    ...point,
-    label: new Date(point.date).toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-    }),
-  }));
+  const { t } = useI18n();
+  const shaped = data;
 
   const busiest = Math.max(1, ...shaped.map((point) => point.count));
 
@@ -50,7 +47,7 @@ export function TrendChart({
               background: "#fffdf9",
               fontSize: 12,
             }}
-            formatter={(value) => [`${Number(value ?? 0)}`, "Documents"]}
+            formatter={(value) => [`${Number(value ?? 0)}`, t("dashboard.trendTooltip")]}
           />
           <Bar dataKey="count" fill="#1f3864" maxBarSize={34} isAnimationActive={false} />
         </BarChart>

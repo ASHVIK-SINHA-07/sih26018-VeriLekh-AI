@@ -1,4 +1,7 @@
-import { STATUS_LABELS, type DocumentStatus } from "@/types";
+"use client";
+
+import { useI18n } from "@/i18n/client";
+import type { DocumentStatus } from "@/types";
 
 /**
  * StatusBadge — a stamped mark, not a pill.
@@ -17,11 +20,12 @@ const STYLES: Record<DocumentStatus, string> = {
 };
 
 export function StatusBadge({ status }: { status: DocumentStatus }) {
+  const { t } = useI18n();
   return (
     <span
       className={`inline-flex items-center border px-2 py-[3px] text-[11px] font-medium tracking-[0.06em] whitespace-nowrap uppercase ${STYLES[status]}`}
     >
-      {STATUS_LABELS[status]}
+      {t(`status.${status}`)}
     </span>
   );
 }

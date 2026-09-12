@@ -1,9 +1,7 @@
-import {
-  SOURCE_LABELS,
-  type ReconciliationSummary,
-  type SourceName,
-} from "@/lib/reconcile";
-import { FIELD_LABELS, type ExtractedFieldName } from "@/types";
+import type { ReconciliationSummary, SourceName } from "@/lib/reconcile";
+import type { ExtractedFieldName } from "@/types";
+import { getI18n } from "@/i18n/server";
+import { renderFinding } from "@/i18n/translate";
 
 /**
  * What other government systems say about this parcel.
@@ -34,7 +32,8 @@ function Row({
   );
 }
 
-export function ReconciliationPanel({ result }: { result: ReconciliationSummary }) {
+export async function ReconciliationPanel({ result }: { result: ReconciliationSummary }) {
+  const { t, locale } = await getI18n();
   const conflicting = result.status === "CONFLICTS";
   const notFound = result.status === "NOT_FOUND";
 
@@ -50,21 +49,13 @@ export function ReconciliationPanel({ result }: { result: ReconciliationSummary 
       }`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-hairline px-4 py-3">
-        <p className="text-[13.5px] font-semibold text-foreground">
-          Cross-source verification
-        </p>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-3">
-          Simulated — no government system is contacted
-        </p>
+        <p className="text-[13.5px] font-semibold text-foreground">{t("recon.title")}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-3">{t("recon.simulated")}</p>
       </div>
 
       <div className="px-4 py-3">
         {notFound ? (
-          <p className="text-[12.5px] text-ink-2">
-            No external system holds a record of this parcel. That is expected for a
-            record being digitised for the first time — there is nothing upstream to
-            check it against yet.
-          </p>
+          <p className="text-[12.5px] text-ink-2">{t("recon.notFound")}</p>
         ) : (
           <>
             <div className="flex flex-wrap gap-x-5 gap-y-1.5 pb-2">
@@ -74,7 +65,7 @@ export function ReconciliationPanel({ result }: { result: ReconciliationSummary 
                 const isStale = result.stale.some((s) => s.source === source);
                 return (
                   <span key={source} className="text-[12.5px]">
-                    <span className="text-ink-3">{SOURCE_LABELS[source]}</span>{" "}
+                    <span className="text-ink-3">{t(`sources.${source}`)}</span>{" "}
                     <span
                       className={
                         !matched
@@ -84,7 +75,13 @@ export function ReconciliationPanel({ result }: { result: ReconciliationSummary 
                             : "font-semibold text-status-verified"
                       }
                     >
-                      {!matched ? "not held" : hasConflict ? "conflicts" : isStale ? "stale" : "agrees"}
+                      {!matched
+                        ? t("recon.notHeld")
+                        : hasConflict
+                          ? t("recon.conflicts")
+                          : isStale
+                            ? t("recon.stale")
+                            : t("recon.agrees")}
                     </span>
                   </span>
                 );
@@ -92,20 +89,17 @@ export function ReconciliationPanel({ result }: { result: ReconciliationSummary 
             </div>
 
             {result.conflicts.length === 0 && result.stale.length === 0 ? (
-              <p className="border-t border-hairline pt-2 text-[12.5px] text-ink-2">
-                Every field this scan carries matches what the sources above hold for
-                this parcel.
-              </p>
+              <p className="border-t border-hairline pt-2 text-[12.5px] text-ink-2">{t("recon.allAgree")}</p>
             ) : (
               <div className="divide-y divide-hairline border-t border-hairline">
                 {[...byField.entries()].map(([field, findings]) => (
                   <div key={field} className="py-1.5">
                     <Row
-                      label={FIELD_LABELS[field]}
+                      label={t(`fields.${field}`)}
                       tone="conflict"
                       value={findings.map((f, i) => (
                         <span key={i} className="block">
-                          {f.message}
+                          {renderFinding(t, locale, f)}
                         </span>
                       ))}
                     />
@@ -114,9 +108,9 @@ export function ReconciliationPanel({ result }: { result: ReconciliationSummary 
                 {result.stale.map((s) => (
                   <div key={s.source} className="py-1.5">
                     <Row
-                      label="Not updated"
+                      label={t("recon.notUpdated")}
                       tone="conflict"
-                      value={`${SOURCE_LABELS[s.source]} has not been updated in ${s.years} years — an ownership change may never have been mutated`}
+                      value={t("findings.reconStale", { source: t(`sources.${s.source}`), years: s.years })}
                     />
                   </div>
                 ))}

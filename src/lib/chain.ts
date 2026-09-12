@@ -92,7 +92,12 @@ export interface ChainFinding {
   severity: Severity;
   /** The register entry it concerns; absent for findings about the chain as a whole. */
   seq?: number;
+  /** English, for logs, tests and any reader without a translation. */
   message: string;
+  /** Message code for the interface's translations; defaults to the kind. */
+  code?: string;
+  /** The values that fill the message — dates as ISO, names as recorded. */
+  params?: Record<string, string | number>;
 }
 
 export interface Holding {
@@ -182,8 +187,11 @@ export function analyseChain({ mutations, recordOwner, now = new Date() }: Chain
   }
 
   const findings: ChainFinding[] = [];
-  const flag = (kind: FindingKind, message: string, seq?: number) =>
-    findings.push({ kind, severity: SEVERITY[kind], seq, message });
+  const flag = (
+    kind: FindingKind, message: string, seq?: number,
+    params?: Record<string, string | number>, code?: string,
+  ) => findings.push({ kind, severity: SEVERITY[kind], seq, message, code: code ?? kind, params });
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
 
   /* ------------------------------------------- register-order checks ---- */
   // Backdating: an entry registered after another, but claiming an earlier
@@ -198,11 +206,13 @@ export function analyseChain({ mutations, recordOwner, now = new Date() }: Chain
         `Entry ${m.seq} is dated ${dateLabel(m.effectiveDate)} but was entered after entry ` +
           `${latestSoFar.seq}, dated ${dateLabel(latestSoFar.effectiveDate)} — it rewrites history already on record`,
         m.seq,
+        { seq: m.seq, date: iso(m.effectiveDate), prevSeq: latestSoFar.seq, prevDate: iso(latestSoFar.effectiveDate) },
       );
     }
     if (!latestSoFar || m.effectiveDate > latestSoFar.effectiveDate) latestSoFar = m;
     if (m.effectiveDate.getTime() > now.getTime() + DAY) {
-      flag("futureDated", `Entry ${m.seq} is dated ${dateLabel(m.effectiveDate)}, which has not happened yet`, m.seq);
+      flag("futureDated", `Entry ${m.seq} is dated ${dateLabel(m.effectiveDate)}, which has not happened yet`, m.seq,
+        { seq: m.seq, date: iso(m.effectiveDate) });
     }
   }
 
@@ -211,7 +221,8 @@ export function analyseChain({ mutations, recordOwner, now = new Date() }: Chain
     if (!m.mutationNumber) continue;
     const prior = seenNumbers.get(m.mutationNumber);
     if (prior !== undefined) {
-      flag("duplicateNumber", `Mutation number ${m.mutationNumber} appears on entries ${prior} and ${m.seq}`, m.seq);
+      flag("duplicateNumber", `Mutation number ${m.mutationNumber} appears on entries ${prior} and ${m.seq}`, m.seq,
+        { number: m.mutationNumber, first: prior, second: m.seq });
     } else {
       seenNumbers.set(m.mutationNumber, m.seq);
     }
@@ -263,6 +274,7 @@ export function analyseChain({ mutations, recordOwner, now = new Date() }: Chain
         `The digitised history begins with this ${MUTATION_LABELS[earliest.type].toLowerCase()} from ${earliest.fromOwner} — ` +
           `how they acquired the parcel is not on record, so their title is presumed, not traced`,
         earliest.seq,
+        { type: earliest.type, from: earliest.fromOwner },
       );
     }
   }
@@ -281,7 +293,8 @@ export function analyseChain({ mutations, recordOwner, now = new Date() }: Chain
   for (const m of byTime) {
     const share = parseShare(m.share);
     if (!share) {
-      flag("unreadableShare", `Entry ${m.seq} records a share of "${m.share}", which is not a fraction of the parcel`, m.seq);
+      flag("unreadableShare", `Entry ${m.seq} records a share of "${m.share}", which is not a fraction of the parcel`, m.seq,
+        { seq: m.seq, share: m.share });
       steps.push({ mutation: m, holdersAfter: snapshot(), applied: false });
       continue;
     }
@@ -294,7 +307,8 @@ export function analyseChain({ mutations, recordOwner, now = new Date() }: Chain
     }
 
     if (!m.fromOwner) {
-      flag("missingTransferor", `Entry ${m.seq} is a ${MUTATION_LABELS[m.type].toLowerCase()} with no transferor named`, m.seq);
+      flag("missingTransferor", `Entry ${m.seq} is a ${MUTATION_LABELS[m.type].toLowerCase()} with no transferor named`, m.seq,
+        { seq: m.seq, type: m.type });
       steps.push({ mutation: m, holdersAfter: snapshot(), applied: false });
       continue;
     }
@@ -322,6 +336,7 @@ export function analyseChain({ mutations, recordOwner, now = new Date() }: Chain
           `${m.fromOwner} transfers ${m.share} on ${dateLabel(m.effectiveDate)}, but their interest passed to heirs on ` +
             `${dateLabel(died[1])} — a transfer by a holder who had died`,
           m.seq,
+          { from: m.fromOwner, share: m.share, date: iso(m.effectiveDate), diedDate: iso(died[1]) },
         );
       } else if (left) {
         flag(
@@ -329,6 +344,10 @@ export function analyseChain({ mutations, recordOwner, now = new Date() }: Chain
           `${m.fromOwner} transfers ${m.share} to ${m.toOwner} on ${dateLabel(m.effectiveDate)}, but had already ` +
             `transferred their entire holding to ${left[1].to} on ${dateLabel(left[1].date)} — the same land sold twice`,
           m.seq,
+          {
+            from: m.fromOwner, share: m.share, to: m.toOwner, date: iso(m.effectiveDate),
+            earlierTo: left[1].to, earlierDate: iso(left[1].date),
+          },
         );
       } else {
         flag(
@@ -336,6 +355,7 @@ export function analyseChain({ mutations, recordOwner, now = new Date() }: Chain
           `${m.fromOwner} transfers ${m.share} on ${dateLabel(m.effectiveDate)}, but holds nothing in this parcel ` +
             `at that date — no entry shows how they acquired it`,
           m.seq,
+          { from: m.fromOwner, share: m.share, date: iso(m.effectiveDate) },
         );
       }
       steps.push({ mutation: m, holdersAfter: snapshot(), applied: false });
@@ -357,6 +377,7 @@ export function analyseChain({ mutations, recordOwner, now = new Date() }: Chain
             `The inheritance from ${m.fromOwner} on ${dateLabel(m.effectiveDate)} hands out ${format(total)} of the ` +
               `parcel, but ${m.fromOwner} held only ${format(held)} — heirs have been allotted more land than exists`,
             m.seq,
+            { from: m.fromOwner, date: iso(m.effectiveDate), total: format(total), held: format(held) },
           );
         } else if (compare(total, held) < 0) {
           flag(
@@ -364,6 +385,7 @@ export function analyseChain({ mutations, recordOwner, now = new Date() }: Chain
             `The inheritance from ${m.fromOwner} distributes ${format(total)} of the ${format(held)} they held — ` +
               `${format(sub(held, total))} is left with no recorded heir`,
             m.seq,
+            { from: m.fromOwner, total: format(total), held: format(held), left: format(sub(held, total)) },
           );
         }
         // Heirs are credited what the entries say; the deceased leaves the
@@ -386,6 +408,7 @@ export function analyseChain({ mutations, recordOwner, now = new Date() }: Chain
         `${m.fromOwner} transfers ${m.share} to ${m.toOwner} on ${dateLabel(m.effectiveDate)}, but holds only ` +
           `${format(holder.share)} at that date`,
         m.seq,
+        { from: m.fromOwner, share: m.share, to: m.toOwner, date: iso(m.effectiveDate), held: format(holder.share) },
       );
       steps.push({ mutation: m, holdersAfter: snapshot(), applied: false });
       continue;
@@ -406,6 +429,9 @@ export function analyseChain({ mutations, recordOwner, now = new Date() }: Chain
     flag(
       "sharesExceedWhole",
       `Current holdings add up to ${format(totalHeld)} of the parcel — more land is recorded as owned than exists`,
+      undefined,
+      { total: format(totalHeld) },
+      "sharesExceedWholeTotal",
     );
   }
 
@@ -420,12 +446,16 @@ export function analyseChain({ mutations, recordOwner, now = new Date() }: Chain
         "unrecordedTransfer",
         `The record names ${recordOwner} as owner, but the chain of mutations ends with ${head} — ` +
           `a transfer has not been reflected in the Record of Rights`,
+        undefined,
+        { owner: recordOwner, head },
       );
     } else if (currentHolders.length > 1) {
       const others = currentHolders.filter((h) => h !== named).map((h) => `${h.owner} (${h.share})`).join(", ");
       flag(
         "unlistedCoOwners",
         `The record names only ${recordOwner}, who holds ${named.share}; the chain also gives ${others}`,
+        undefined,
+        { owner: recordOwner, share: named.share, others },
       );
     }
   }

@@ -91,6 +91,8 @@ function checkRequiredFields(fields: ExtractedFields): ValidationIssue[] {
     field,
     kind: "missing" as const,
     issue: `${FIELD_LABELS[field]} is missing`,
+    code: "missing",
+    params: { field },
   }));
 }
 
@@ -104,20 +106,26 @@ function checkRanges(fields: ExtractedFields): ValidationIssue[] {
         field: "plotArea",
         kind: "range",
         issue: `Plot area is not a number ("${fields.plotArea}")`,
+        code: "plotNotNumber",
+        params: { value: fields.plotArea },
       });
     } else if (area <= 0) {
-      issues.push({ field: "plotArea", kind: "range", issue: "Plot area must be greater than zero" });
+      issues.push({ field: "plotArea", kind: "range", issue: "Plot area must be greater than zero", code: "plotZero" });
     } else if (area < MIN_PLOT_AREA_HECTARES) {
       issues.push({
         field: "plotArea",
         kind: "range",
         issue: `Plot area ${area} ha is implausibly small — check the decimal point`,
+        code: "plotTooSmall",
+        params: { area },
       });
     } else if (area > MAX_PLOT_AREA_HECTARES) {
       issues.push({
         field: "plotArea",
         kind: "range",
         issue: `Plot area ${area} ha exceeds the plausible maximum of ${MAX_PLOT_AREA_HECTARES} ha`,
+        code: "plotTooLarge",
+        params: { area, max: MAX_PLOT_AREA_HECTARES },
       });
     }
   }
@@ -128,6 +136,7 @@ function checkRanges(fields: ExtractedFields): ValidationIssue[] {
       field: "ownerName",
       kind: "range",
         issue: "Owner name contains digits — likely misread from a neighbouring column",
+        code: "ownerDigits",
     });
   }
 
@@ -141,6 +150,8 @@ function checkConfidence(confidence: ConfidenceMap): ValidationIssue[] {
       field,
       kind: "confidence" as const,
       issue: `Low confidence — ${Math.round((score as number) * 100)}%`,
+      code: "lowConfidence",
+      params: { field, pct: Math.round((score as number) * 100) },
     }));
 }
 
@@ -178,6 +189,8 @@ export function validateRecord({
     issues.unshift({
       field: "khasraNumber",
       kind: "duplicate",
+      code: duplicate.ulpin ? "duplicateUlpin" : "duplicate",
+      params: { khasra: fields.khasraNumber ?? "", village: fields.village ?? "", ulpin: duplicate.ulpin ?? "" },
       issue: duplicate.ulpin
         ? `Duplicate parcel — khasra ${fields.khasraNumber} in ${fields.village} is already recorded under ULPIN ${duplicate.ulpin}`
         : `Duplicate parcel — khasra ${fields.khasraNumber} in ${fields.village} is already recorded`,
@@ -201,6 +214,8 @@ export function validateRecord({
     issues.unshift({
       field: "ownerName",
       kind: match.verdict === "different" ? "ownerConflict" : "ownerVariant",
+      code: match.verdict === "different" ? "ownerConflict" : match.subset ? "ownerIncomplete" : "ownerVariant",
+      params: { khata: fields.khataNumber ?? "", owner: record.ownerName, pct: percent },
       issue:
         match.verdict === "different"
           ? `Owner name conflicts with the existing record for khata ${fields.khataNumber} (${record.ownerName})`

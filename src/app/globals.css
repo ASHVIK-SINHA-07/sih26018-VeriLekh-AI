@@ -244,6 +244,28 @@
   table, .tabular { font-variant-numeric: tabular-nums; }
 }
 
+/* Every script the interface can be shown in, in one stack. Each Noto face
+   covers only its own script, so the browser takes Latin from Inter and each
+   Indian script from its own face, glyph by glyph. */
+@layer base {
+  html {
+    font-family: var(--font-sans), var(--font-devanagari), var(--font-bengali),
+      var(--font-gurmukhi), system-ui, sans-serif;
+  }
+  h1 {
+    font-family: var(--font-serif), var(--font-devanagari), var(--font-bengali),
+      var(--font-gurmukhi), Cambria, Georgia, serif;
+  }
+}
+
+/* Devanagari, Bengali and Gurmukhi are shaped as clusters: letter-spacing
+   pulls vowel signs away from their consonants and breaks conjuncts. The
+   tracked uppercase labels are a Latin idiom, so outside English the
+   tracking is switched off everywhere. */
+html:not([lang="en"]) * {
+  letter-spacing: normal !important;
+}
+
 /* Small uppercase label used for table heads and field captions. */
 @utility label-cap {
   font-size: 10.5px;

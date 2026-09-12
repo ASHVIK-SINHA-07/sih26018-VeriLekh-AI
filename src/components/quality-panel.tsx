@@ -1,5 +1,8 @@
-import type { QualityScore } from "@/lib/quality";
+import type { QualityScore, Deduction } from "@/lib/quality";
 import type { ChainVerdict } from "@/lib/provenance";
+import { getI18n } from "@/i18n/server";
+import { renderFinding, type Translator } from "@/i18n/translate";
+import type { Locale } from "@/i18n/config";
 
 /**
  * The record's data quality score, and whether its provenance chain still
@@ -10,11 +13,25 @@ import type { ChainVerdict } from "@/lib/provenance";
  * every deduction is named.
  */
 
-const BAND_STYLE: Record<QualityScore["band"], { ring: string; text: string; label: string }> = {
-  HIGH:   { ring: "border-l-status-verified", text: "text-status-verified", label: "Good" },
-  MEDIUM: { ring: "border-l-low-confidence",  text: "text-low-confidence",  label: "Needs review" },
-  LOW:    { ring: "border-l-status-flagged",  text: "text-status-flagged",  label: "Poor" },
+const BAND_STYLE: Record<QualityScore["band"], { ring: string; text: string }> = {
+  HIGH:   { ring: "border-l-status-verified", text: "text-status-verified" },
+  MEDIUM: { ring: "border-l-low-confidence",  text: "text-low-confidence" },
+  LOW:    { ring: "border-l-status-flagged",  text: "text-status-flagged" },
 };
+
+const DETAIL_KEY = {
+  completeness: "quality.detailCompleteness",
+  confidence: "quality.detailConfidence",
+  confidenceNone: "quality.detailConfidenceNone",
+  consistency: "quality.detailConsistency",
+  consistencyNone: "quality.detailConsistencyNone",
+} as const;
+
+function deductionText(t: Translator, locale: Locale, d: Deduction): string {
+  if (d.kind === "issue") return renderFinding(t, locale, d.issue);
+  const fields = d.fields.map((f) => t(`fields.${f}` as Parameters<Translator>[0])).join(", ");
+  return t(d.kind === "missingFields" ? "quality.dedMissing" : "quality.dedLow", { count: d.fields.length, fields });
+}
 
 function Bar({ value }: { value: number }) {
   return (
@@ -24,27 +41,26 @@ function Bar({ value }: { value: number }) {
   );
 }
 
-export function QualityPanel({
+export async function QualityPanel({
   quality,
   chain,
 }: {
   quality: QualityScore;
   chain: ChainVerdict;
 }) {
+  const { t, locale } = await getI18n();
   const style = BAND_STYLE[quality.band];
   const components = [
-    { name: "Completeness", ...quality.components.completeness },
-    { name: "Confidence", ...quality.components.confidence },
-    { name: "Consistency", ...quality.components.consistency },
+    { name: t("quality.completeness"), ...quality.components.completeness },
+    { name: t("quality.confidence"), ...quality.components.confidence },
+    { name: t("quality.consistency"), ...quality.components.consistency },
   ];
 
   return (
     <div className={`border border-hairline border-l-[3px] ${style.ring} bg-panel`}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-hairline px-4 py-3">
-        <p className="text-[13.5px] font-semibold text-foreground">Data quality score</p>
-        <p className="text-[12.5px] text-ink-2">
-          Completeness, confidence and consistency — weighted 30 / 30 / 40
-        </p>
+        <p className="text-[13.5px] font-semibold text-foreground">{t("quality.title")}</p>
+        <p className="text-[12.5px] text-ink-2">{t("quality.weights")}</p>
       </div>
 
       <div className="flex flex-col gap-5 px-4 py-4 sm:flex-row sm:items-start">
@@ -53,7 +69,7 @@ export function QualityPanel({
             {quality.score}
           </span>
           <span className={`text-[12px] font-semibold uppercase tracking-[0.08em] ${style.text}`}>
-            {style.label}
+            {t(`quality.${quality.band}`)}
           </span>
         </div>
 
@@ -65,20 +81,20 @@ export function QualityPanel({
                 <span className="text-[12.5px] tabular-nums text-ink-2">{c.score}</span>
               </div>
               <Bar value={c.score} />
-              <p className="mt-1.5 text-[11.5px] leading-snug text-ink-2">{c.detail}</p>
+              <p className="mt-1.5 text-[11.5px] leading-snug text-ink-2">{t(DETAIL_KEY[c.detailCode], c.detailParams)}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {quality.deductions.length > 0 ? (
+      {quality.deductionItems.length > 0 ? (
         <div className="border-t border-hairline px-4 py-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-ink-3">
-            What cost this record points
+            {t("quality.deductionsTitle")}
           </p>
           <ul className="mt-1.5 space-y-1">
-            {quality.deductions.map((d, i) => (
-              <li key={i} className="text-[12.5px] text-ink-2">· {d}</li>
+            {quality.deductionItems.map((d, i) => (
+              <li key={i} className="text-[12.5px] text-ink-2">· {deductionText(t, locale, d)}</li>
             ))}
           </ul>
         </div>
@@ -94,25 +110,25 @@ export function QualityPanel({
  * the audit trail is evidence rather than a claim, so its state belongs on
  * screen, not in a log.
  */
-export function ProvenanceNote({ chain, framed = false }: { chain: ChainVerdict; framed?: boolean }) {
+export async function ProvenanceNote({ chain, framed = false }: { chain: ChainVerdict; framed?: boolean }) {
+  const { t } = await getI18n();
   return (
     <div className={`flex flex-wrap items-baseline gap-x-2 gap-y-1 px-4 py-3 ${framed ? "border border-hairline bg-panel" : "border-t border-hairline"}`}>
       <span className="text-[11px] font-semibold uppercase tracking-[0.09em] text-ink-3">
-        Provenance
+        {t("provenance.label")}
       </span>
       {chain.intact ? (
         <span className="text-[12.5px] text-ink-2">
-          <span className="font-semibold text-status-verified">Chain verified</span>
+          <span className="font-semibold text-status-verified">{t("provenance.verified")}</span>
           {" — "}
-          {chain.entries === 1
-            ? "1 audit entry, hash-sealed. Altering it, or inserting an entry after it, would break the chain."
-            : `${chain.entries} audit entries, each hash-linked to the one before it. Altering or removing any of them would break the chain.`}
+          {chain.entries === 1 ? t("provenance.one") : t("provenance.many", { count: chain.entries })}
         </span>
       ) : (
         <span className="text-[12.5px] text-ink-2">
-          <span className="font-semibold text-status-flagged">Chain broken</span>
+          <span className="font-semibold text-status-flagged">{t("provenance.broken")}</span>
           {" — "}
-          at entry {chain.brokenAtSeq + 1} of {chain.entries}. {chain.reason}
+          {t("provenance.brokenAt", { at: chain.brokenAtSeq + 1, count: chain.entries })}{" "}
+          {t(`provenance.${chain.reasonCode}`)}
         </span>
       )}
     </div>

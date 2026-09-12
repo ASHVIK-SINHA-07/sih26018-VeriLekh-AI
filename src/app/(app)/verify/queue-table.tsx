@@ -5,8 +5,8 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/empty-state";
-import { asRelativeTime } from "@/lib/format";
-import { STATUS_LABELS, type DocumentStatus } from "@/types";
+import { useI18n } from "@/i18n/client";
+import type { DocumentStatus } from "@/types";
 
 /**
  * The review queue with search and filters.
@@ -22,7 +22,8 @@ export interface QueueRow {
   status: DocumentStatus;
   village: string | null;
   district: string | null;
-  updatedAt: string;
+  /** "6 hours ago", written on the server in the reader's language. */
+  updatedLabel: string;
   issueCount: number;
   topIssue: string | null;
 }
@@ -31,6 +32,7 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"ALL" | DocumentStatus>("ALL");
   const [district, setDistrict] = useState("ALL");
+  const { t } = useI18n();
 
   const districts = useMemo(
     () => [...new Set(rows.map((r) => r.district).filter(Boolean))] as string[],
@@ -62,34 +64,34 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search document, village or district"
-            aria-label="Search the queue"
+            placeholder={t("queue.search")}
+            aria-label={t("queue.searchLabel")}
             className={`${control} w-full pl-7 sm:w-72`}
           />
         </div>
 
         <label className="flex items-center gap-2">
-          <span className="label-cap">Status</span>
+          <span className="label-cap">{t("common.status")}</span>
           <select
             value={status}
             onChange={(event) => setStatus(event.target.value as "ALL" | DocumentStatus)}
             className={control}
           >
-            <option value="ALL">All</option>
-            <option value="FLAGGED">{STATUS_LABELS.FLAGGED}</option>
-            <option value="PENDING">{STATUS_LABELS.PENDING}</option>
+            <option value="ALL">{t("common.all")}</option>
+            <option value="FLAGGED">{t("status.FLAGGED")}</option>
+            <option value="PENDING">{t("status.PENDING")}</option>
           </select>
         </label>
 
         {districts.length > 0 ? (
           <label className="flex items-center gap-2">
-            <span className="label-cap">District</span>
+            <span className="label-cap">{t("common.district")}</span>
             <select
               value={district}
               onChange={(event) => setDistrict(event.target.value)}
               className={control}
             >
-              <option value="ALL">All</option>
+              <option value="ALL">{t("common.all")}</option>
               {districts.map((name) => (
                 <option key={name} value={name}>{name}</option>
               ))}
@@ -98,19 +100,15 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
         ) : null}
 
         <span className="ml-auto text-[12px] text-muted-foreground tabular-nums">
-          {filtered.length} of {rows.length}
+          {t("common.xOfY", { x: filtered.length, y: rows.length })}
         </span>
       </div>
 
       {filtered.length === 0 ? (
         <div className="p-6">
           <EmptyState
-            title={rows.length === 0 ? "Nothing to review" : "No records match those filters"}
-            hint={
-              rows.length === 0
-                ? "Records appear here once they have been uploaded and read."
-                : "Clear the search or widen the filters."
-            }
+            title={rows.length === 0 ? t("queue.emptyTitle") : t("queue.noMatchTitle")}
+            hint={rows.length === 0 ? t("queue.emptyHint") : t("queue.noMatchHint")}
           />
         </div>
       ) : (
@@ -118,12 +116,12 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
           <table className="w-full text-[13px]">
             <thead>
               <tr className="border-b border-hairline bg-panel-alt">
-                <th className="label-cap px-4 py-2 text-left">Document</th>
-                <th className="label-cap hidden px-3 py-2 text-left md:table-cell">Village</th>
-                <th className="label-cap hidden px-3 py-2 text-left sm:table-cell">District</th>
-                <th className="label-cap px-3 py-2 text-left">Status</th>
-                <th className="label-cap hidden px-3 py-2 text-left lg:table-cell">Finding</th>
-                <th className="label-cap hidden px-4 py-2 text-right sm:table-cell">Updated</th>
+                <th className="label-cap px-4 py-2 text-left">{t("common.document")}</th>
+                <th className="label-cap hidden px-3 py-2 text-left md:table-cell">{t("common.village")}</th>
+                <th className="label-cap hidden px-3 py-2 text-left sm:table-cell">{t("common.district")}</th>
+                <th className="label-cap px-3 py-2 text-left">{t("common.status")}</th>
+                <th className="label-cap hidden px-3 py-2 text-left lg:table-cell">{t("common.finding")}</th>
+                <th className="label-cap hidden px-4 py-2 text-right sm:table-cell">{t("common.updated")}</th>
               </tr>
             </thead>
             <tbody>
@@ -143,11 +141,11 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
                   <td className="hidden max-w-md truncate px-3 py-2.5 text-[12.5px] text-muted-foreground lg:table-cell">
                     {row.topIssue ?? "—"}
                     {row.issueCount > 1 ? (
-                      <span className="text-muted-foreground"> +{row.issueCount - 1} more</span>
+                      <span className="text-muted-foreground"> {t("common.more", { count: row.issueCount - 1 })}</span>
                     ) : null}
                   </td>
                   <td className="hidden px-4 py-2.5 text-right text-[12px] text-muted-foreground tabular-nums sm:table-cell">
-                    {asRelativeTime(row.updatedAt)}
+                    {row.updatedLabel}
                   </td>
                 </tr>
               ))}

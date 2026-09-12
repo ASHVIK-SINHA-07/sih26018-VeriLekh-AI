@@ -12,8 +12,10 @@ import { scoreRecord } from "@/lib/quality";
 import { verifyDocumentChain } from "@/lib/audit";
 import { VerifyClient } from "./verify-client";
 import { MutationOrderView } from "./mutation-order-view";
+import { getI18n } from "@/i18n/server";
+import { renderFinding } from "@/i18n/translate";
 import {
-  EXTRACTED_FIELD_NAMES, FIELD_LABELS,
+  EXTRACTED_FIELD_NAMES,
   type AuditLogEntry, type ConfidenceMap, type ExtractedFields, type ValidationIssue, type ValidationSummary,
 } from "@/types";
 
@@ -44,6 +46,7 @@ export default async function VerifyDetailPage({
   });
 
   if (!document) notFound();
+  const { t, locale } = await getI18n();
 
   // A mutation order is reviewed against the parcel's chain of title, not
   // scored as a Record of Rights.
@@ -57,13 +60,10 @@ export default async function VerifyDetailPage({
     return (
       <section className="space-y-4">
         <Link href="/verify" className="text-sm text-navy underline underline-offset-2">
-          ← Back to queue
+          {t("verify.back")}
         </Link>
         <h1 className="text-xl font-medium text-navy">{document.filename}</h1>
-        <p className="text-sm text-muted-foreground">
-          This document has not been read yet, so there is nothing to review.
-          Run extraction from the upload screen first.
-        </p>
+        <p className="text-sm text-muted-foreground">{t("verify.notRead")}</p>
       </section>
     );
   }
@@ -131,13 +131,15 @@ export default async function VerifyDetailPage({
       filePath={document.filePath}
       status={document.status}
       fieldNames={EXTRACTED_FIELD_NAMES}
-      fieldLabels={FIELD_LABELS}
+      fieldLabels={Object.fromEntries(EXTRACTED_FIELD_NAMES.map((f) => [f, t(`fields.${f}`)]))}
       fields={{ ...fields }}
       confidence={fromJson<ConfidenceMap>(record.confidence, {})}
       validation={validation}
+      issueTexts={(validation?.issues ?? []).map((issue) => renderFinding(t, locale, issue))}
       duplicateOf={duplicateOf}
       ulpin={fields.ulpin}
-      approveHint="Approving commits the record and issues a ULPIN-style id."
+      approveHint={t("verify.approveHintRecord")}
+      fieldsTitle={t("verify.fieldsTitle")}
     />
     <div className="space-y-4 px-4 pb-4 sm:px-7 sm:pb-7">
       <QualityPanel quality={quality} chain={provenance} />

@@ -9,6 +9,7 @@ import { FieldEditor } from "@/components/field-editor";
 import { NgdrsPanel } from "@/components/ngdrs-panel";
 import { ScanViewer } from "@/components/scan-viewer";
 import { Panel } from "@/components/panel";
+import { useI18n } from "@/i18n/client";
 import type { DocumentStatus, ValidationSummary } from "@/types";
 
 /**
@@ -34,26 +35,32 @@ interface Props {
   fields: Record<string, string | null>;
   confidence: Record<string, number | undefined>;
   validation: ValidationSummary | null;
+  /** Each validation issue as a sentence in the reader's language. Written
+      on the server: a browser may lack the locale data to write its dates. */
+  issueTexts: string[];
   duplicateOf: { id: string; filename: string; ulpin: string | null } | null;
   /** Set on a verified khatauni; a mutation order never has one. */
   ulpin?: string | null;
   /** What approving this document does, in one line. */
   approveHint: string;
   /** Heading over the fields panel. */
-  fieldsTitle?: string;
+  fieldsTitle: string;
 }
 
 const DECIDED: DocumentStatus[] = ["VERIFIED", "REJECTED"];
 
 export function VerifyClient(props: Props) {
   const router = useRouter();
+  const { t, locale } = useI18n();
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       props.fieldNames.map((field) => [field, props.fields[field] ?? ""]),
     ),
   );
   const [submitting, setSubmitting] = useState<null | "approve" | "reject">(null);
-  const [error, setError] = useState<string | null>(null);
+  /** A failed decision: the server's English wording is kept for English
+      readers; everyone else gets the catalogue's sentence. */
+  const [error, setError] = useState<{ key: "verify.errSave" | "verify.errNetwork"; detail?: string } | null>(null);
 
   const decided = DECIDED.includes(props.status);
 
@@ -85,7 +92,7 @@ export function VerifyClient(props: Props) {
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        setError(body.error ?? "Could not save this decision");
+        setError({ key: "verify.errSave", detail: body.error });
         setSubmitting(null);
         return;
       }
@@ -94,7 +101,7 @@ export function VerifyClient(props: Props) {
       router.push("/verify");
       router.refresh();
     } catch {
-      setError("Network error — the decision was not saved");
+      setError({ key: "verify.errNetwork" });
       setSubmitting(null);
     }
   }
@@ -110,7 +117,7 @@ export function VerifyClient(props: Props) {
           href="/verify"
           className="text-[12.5px] text-navy hover:underline"
         >
-          ← Back to queue
+          {t("verify.back")}
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="text-[1.375rem]">{props.filename}</h1>
@@ -137,19 +144,19 @@ export function VerifyClient(props: Props) {
         >
           <p className="text-[13.5px] font-semibold text-foreground">
             {props.validation.status === "DUPLICATE"
-              ? "This looks like a parcel that is already recorded"
+              ? t("verify.duplicateTitle")
               : props.validation.status === "PASS"
                 ? // Nothing is wrong with this record — the only notes on it
                   // are values the system corrected from what officers have
                   // taught it. Saying "things to check" here would be alarming
                   // and wrong.
-                  `${props.validation.issues.length} field${props.validation.issues.length === 1 ? "" : "s"} corrected from earlier reviews`
-                : `${props.validation.issues.length} thing${props.validation.issues.length === 1 ? "" : "s"} to check before approving`}
+                  t("verify.learnedTitle", { count: props.validation.issues.length })
+                : t("verify.checkTitle", { count: props.validation.issues.length })}
           </p>
           <ul className="mt-2 space-y-1">
             {props.validation.issues.map((issue, index) => (
               <li key={`${issue.field}-${index}`} className="text-[12.5px] text-ink-2">
-                · {issue.issue}
+                · {props.issueTexts[index] ?? issue.issue}
               </li>
             ))}
           </ul>
@@ -159,7 +166,7 @@ export function VerifyClient(props: Props) {
                 href={`/verify/${props.duplicateOf.id}`}
                 className="text-navy underline underline-offset-2"
               >
-                Open the existing record ({props.duplicateOf.filename})
+                {t("verify.openExisting", { filename: props.duplicateOf.filename })}
               </Link>
             </p>
           ) : null}
@@ -175,26 +182,26 @@ export function VerifyClient(props: Props) {
       {/* ------------------------------------------------------ two columns */}
       <div className="grid gap-5 p-4 pt-4 sm:p-7 sm:pt-4 xl:grid-cols-2">
         {/* left: the scan */}
-        <Panel title="Scanned record" meta="Scroll or click to zoom · drag to move">
+        <Panel title={t("verify.scanTitle")} meta={t("verify.scanMeta")}>
           <div>
             <ScanViewer src={scanUrl} filename={props.filename} isPdf={isPdf} />
           </div>
           <p className="border-t border-hairline px-4 py-2 text-[12px] text-muted-foreground">
-            Faded areas on the scan are where the reader was least certain.
+            {t("verify.scanNote")}
           </p>
         </Panel>
 
         {/* right: the fields */}
         <div className="space-y-4">
           <Panel
-            title={props.fieldsTitle ?? "Extracted fields"}
+            title={props.fieldsTitle}
             meta={
               edited.size > 0 ? (
                 <span className="text-status-verified">
-                  {edited.size} field{edited.size === 1 ? "" : "s"} corrected
+                  {t("verify.fieldsCorrected", { count: edited.size })}
                 </span>
               ) : (
-                "Low-confidence fields are marked"
+                t("verify.lowMarked")
               )
             }
             bodyClassName="grid gap-4 p-4 sm:grid-cols-2"
@@ -216,15 +223,15 @@ export function VerifyClient(props: Props) {
           </Panel>
 
           {error ? (
-            <p role="alert" className="border border-status-flagged/40 bg-status-flagged/[0.05] px-3 py-2 text-[13px] text-status-flagged">{error}</p>
+            <p role="alert" className="border border-status-flagged/40 bg-status-flagged/[0.05] px-3 py-2 text-[13px] text-status-flagged">
+              {locale === "en" && error.detail ? error.detail : t(error.key)}
+            </p>
           ) : null}
 
           {/* ------------------------------------------------------ actions */}
           {decided ? (
             <p className="border border-hairline bg-panel px-4 py-3 text-[13px] text-muted-foreground">
-              This record has already been{" "}
-              {props.status === "VERIFIED" ? "approved" : "rejected"}. Its history
-              is in the audit trail.
+              {props.status === "VERIFIED" ? t("verify.decidedApproved") : t("verify.decidedRejected")}
             </p>
           ) : (
             <div className="flex flex-wrap items-center gap-3 border border-hairline bg-panel px-4 py-3">
@@ -233,13 +240,13 @@ export function VerifyClient(props: Props) {
                 disabled={submitting !== null}
                 onClick={() => void submit("reject")}
               >
-                {submitting === "reject" ? "Rejecting…" : "Reject"}
+                {submitting === "reject" ? t("verify.rejecting") : t("verify.reject")}
               </Button>
               <Button
                 disabled={submitting !== null}
                 onClick={() => void submit("approve")}
               >
-                {submitting === "approve" ? "Approving…" : "Approve"}
+                {submitting === "approve" ? t("verify.approving") : t("verify.approve")}
               </Button>
               <span className="text-[12px] text-muted-foreground">
                 {props.approveHint}

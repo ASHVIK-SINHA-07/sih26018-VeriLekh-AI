@@ -1,5 +1,7 @@
 import type { DistrictRisk } from "@/lib/risk";
-import { asCount, asPercent } from "@/lib/format";
+import { asPercent } from "@/lib/format";
+import { getI18n } from "@/i18n/server";
+import type { Translator } from "@/i18n/translate";
 import { Panel } from "@/components/panel";
 import { EmptyState } from "@/components/empty-state";
 
@@ -12,13 +14,13 @@ import { EmptyState } from "@/components/empty-state";
  */
 
 function RateCell({
-  label, checked, flagged, rate,
-}: { label: string; checked: number; flagged: number; rate: number }) {
+  label, checked, flagged, rate, t,
+}: { label: string; checked: number; flagged: number; rate: number; t: Translator }) {
   if (checked === 0) {
     return (
       <div>
         <p className="text-[12.5px] text-ink-3">{label}</p>
-        <p className="text-[12px] text-ink-3">nothing checked yet</p>
+        <p className="text-[12px] text-ink-3">{t("risk.nothingChecked")}</p>
       </div>
     );
   }
@@ -27,27 +29,28 @@ function RateCell({
       <p className="text-[12.5px] text-ink-3">{label}</p>
       <p className={`text-[13px] tabular-nums ${flagged > 0 ? "font-semibold text-status-flagged" : "text-foreground"}`}>
         {asPercent(rate)}
-        <span className="text-ink-3"> — {flagged} of {checked}</span>
+        <span className="text-ink-3"> — {t("risk.rate", { flagged, checked })}</span>
       </p>
     </div>
   );
 }
 
-export function DistrictRiskPanel({ rows }: { rows: DistrictRisk[] }) {
+export async function DistrictRiskPanel({ rows }: { rows: DistrictRisk[] }) {
+  const { t } = await getI18n();
   const totalNeedingVisit = rows.reduce((sum, r) => sum + r.needsFieldVerification, 0);
 
   return (
     <Panel
-      title="Field-verification priority by district"
+      title={t("risk.title")}
       meta={
         totalNeedingVisit === 0
-          ? "Nothing flagged"
-          : `${asCount(totalNeedingVisit)} record${totalNeedingVisit === 1 ? "" : "s"} to send someone to check`
+          ? t("risk.nothingFlagged")
+          : t("risk.toCheck", { count: totalNeedingVisit })
       }
     >
       {rows.length === 0 ? (
         <div className="p-6">
-          <EmptyState title="No districts yet" hint="Nothing has been digitised with a district recorded." />
+          <EmptyState title={t("risk.emptyTitle")} hint={t("risk.emptyHint")} />
         </div>
       ) : (
         <div className="divide-y divide-hairline">
@@ -61,26 +64,28 @@ export function DistrictRiskPanel({ rows }: { rows: DistrictRisk[] }) {
               <div className="w-[160px] shrink-0">
                 <p className="text-[13.5px] font-semibold text-foreground">{r.district}</p>
                 <p className="text-[12px] text-ink-3">
-                  {r.recordCount} record{r.recordCount === 1 ? "" : "s"} · mean quality {r.meanQuality}
+                  {t("risk.records", { count: r.recordCount, quality: r.meanQuality })}
                 </p>
               </div>
 
               <RateCell
-                label="Disagrees with another system"
+                label={t("risk.disagrees")}
+                t={t}
                 checked={r.reconciled}
                 flagged={r.reconciliationConflicts}
                 rate={r.reconciliationConflictRate}
               />
 
               <RateCell
-                label="Title defect (double sale, sale by the deceased, etc.)"
+                label={t("risk.titleDefect")}
+                t={t}
                 checked={r.chainsTraced}
                 flagged={r.criticalChainDefects}
                 rate={r.chainDefectRate}
               />
 
               <div className="ml-auto text-right">
-                <p className="text-[12.5px] text-ink-3">Send someone to check</p>
+                <p className="text-[12.5px] text-ink-3">{t("risk.sendSomeone")}</p>
                 <p
                   className={`text-[20px] font-semibold tabular-nums leading-none ${
                     r.needsFieldVerification > 0 ? "text-status-flagged" : "text-status-verified"

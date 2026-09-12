@@ -26,6 +26,7 @@ export const MUTATION_FIELD_NAMES = [
   "fromOwner",
   "toOwner",
   "share",
+  "deedNumber",
   "khasraNumber",
   "village",
   "district",
@@ -43,6 +44,7 @@ export const MUTATION_FIELD_LABELS: Record<MutationFieldName, string> = {
   fromOwner: "Transferor",
   toOwner: "Transferee",
   share: "Share transferred",
+  deedNumber: "Deed number",
   khasraNumber: "Khasra number",
   village: "Village",
   district: "District",
@@ -86,6 +88,14 @@ export const MUTATION_SPEC: Record<MutationFieldName, FieldSpec> = {
     // A fraction, or one word (सम्पूर्ण, however the matras came out).
     // Whether it is a share at all is decided by normaliseShare, on skeleton.
     shape: /^(?:\d+\/\d+|\d+(?:\.\d+)?|[ऀ-ॿ\u200c\u200d]+)$/,
+  },
+  // Registration information: the sale deed the transfer rests on. Not
+  // required — an inheritance has no deed.
+  deedNumber: {
+    devanagari: ["विलेख संख्या", "बैनामा संख्या", "रजिस्ट्री संख्या", "पंजीकरण संख्या"],
+    latin: [/deed\s*(?:no\.?|number)/i, /registration\s*(?:no\.?|number)/i],
+    shape: /^\d{1,6}\/\d{4}$/,
+    singleToken: true,
   },
   khasraNumber: KHATAUNI_SPEC.khasraNumber,
   village: KHATAUNI_SPEC.village,

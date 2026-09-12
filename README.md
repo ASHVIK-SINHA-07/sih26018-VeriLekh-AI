@@ -30,9 +30,11 @@ zoomed and panned to check a value against the page.
 
 ### Dashboard
 
-Live figures from the database — documents processed, mean extraction accuracy,
-records awaiting review and records flagged — with a 14-day trend and an
-activity table whose rows expand in place.
+Live figures from the database — documents processed, extraction accuracy
+(fields officers approved unchanged), data quality, records awaiting review and
+records flagged — with progress by state, a schematic field-visit map by
+district, error statistics, a 14-day trend and an activity table whose rows
+expand in place.
 
 ![Dashboard](assets/dashboard.png)
 
@@ -106,7 +108,7 @@ Internal government revenue staff — not the public.
 | ORM | Prisma | One schema file is the single source of truth for the data model |
 | UI | Tailwind CSS v4 + shadcn/ui | Accessible prebuilt primitives instead of hand-rolled components |
 | Auth | Auth.js (NextAuth v5), credentials provider | Email/password with a `role` claim on the session |
-| OCR | Tesseract 5 (Hindi + English), self-hosted in Docker | Runs on your own hardware — see below |
+| OCR | Tesseract 5 with ten language models (nine Indian + English), self-hosted in Docker | Runs on your own hardware — see below |
 
 ### Data model
 
@@ -124,8 +126,10 @@ Five tables, all linked by foreign keys:
 ### OCR: real, and running on your own hardware
 
 Text recognition runs in `ocr-service/` — a small FastAPI service using
-**Tesseract 5** with the Hindi (Devanagari) and English language models,
-started alongside the database by `docker compose up -d`.
+**Tesseract 5** with ten language models — Hindi, Marathi, Bengali, Tamil,
+Telugu, Gujarati, Punjabi, Kannada, Odia and English — started alongside the
+database by `docker compose up -d`. Forms are read end to end for Uttar
+Pradesh's khatauni and mutation orders; a Marathi 7/12 is demonstrated.
 
 It never touches the network. The language models are installed into the image
 at build time and documents are read from a read-only mount of the application's
@@ -145,11 +149,11 @@ How a page is read:
    A line's confidence is the **lowest** of its words: printed labels always
    read cleanly, and averaging would hide uncertainty about the written value.
 
-Measured on three sample records: **20 of 27 fields exactly correct, 25 of 27
-populated.** The residual errors are Devanagari matra reordering by the engine
-(`मलिहाबाद` read as `मलहिबाद`). Every incorrect field so far has scored below
-the confidence threshold, so it is flagged and reaches a human — which is what
-the verification workflow exists for.
+Measured across seventeen test documents and 152 fields (see
+[Project status](#project-status) and `npm run benchmark`): **94% populated, 68%
+exactly correct, and 86% of the wrong fields flagged** for a human. The residual
+errors are mostly Devanagari matra reordering by the engine (`मलिहाबाद` read as
+`मलहिबाद`) — the exact mistake correction memory learns to fix.
 
 The application only ever calls `runOcr()` in `src/lib/ocr.ts`, so a department
 can substitute its own engine by exposing `POST /extract` returning
@@ -358,6 +362,9 @@ Public record check — no login, no personal data █████████�
 Guided tour of every screen, 5 languages         ██████████  complete
 District map of field-visit priority (schematic) ██████████  complete
 In-app notifications — orders and flagged work   ██████████  complete
+Dashboard: accuracy, errors, state and district  ██████████  complete
+Registration info — deed numbers from orders     ██████████  complete
+Read-only API with keys for other systems        ██████████  complete
 Append-only audit trail, hash-chained            ██████████  complete
 Role-based access control                        ██████████  complete
 Dashboards and reporting                         ██████████  complete
@@ -402,6 +409,7 @@ script's output, the script is right.
 ```
 Language coverage — 10 languages installed       ███████░░░  labels: Hindi, Marathi
 Registry integration — contract built, simulated ████░░░░░░  no live endpoint
+Cadastral link — checks on synthetic village maps ████░░░░░░  no real maps
 ```
 
 The OCR engine is reached through a single swappable interface, so adding a

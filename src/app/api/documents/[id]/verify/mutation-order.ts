@@ -127,6 +127,8 @@ export async function decideMutationOrder(
           share: candidate.share,
           effectiveDate: candidate.effectiveDate,
           sourceDocumentId: documentId,
+          // Registration information travels into the register with the entry.
+          orderReference: fields.deedNumber?.trim() || null,
         },
       });
       await tx.extractedMutation.update({ where: { documentId }, data: { mutationId: entry.id } });

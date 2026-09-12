@@ -50,6 +50,8 @@ export interface MutationRow {
   supersedesId: string | null;
   /** The scan this entry was read from, when it came through the pipeline. */
   sourceDocumentId?: string | null;
+  /** Registration information — the deed the transfer rests on. */
+  orderReference?: string | null;
 }
 
 export type FindingKind =

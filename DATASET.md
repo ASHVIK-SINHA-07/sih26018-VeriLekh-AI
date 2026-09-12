@@ -26,10 +26,11 @@ anywhere in this project: every name, survey number and parcel is invented.
 | Set | Size | Where it lives | Used for |
 |---|---|---|---|
 | Khatauni (Record of Rights) scans | 17 documents, 152 ground-truth fields | Ground truth: `prisma/seed-data.ts`. Scans rendered by `prisma/seed-scan.ts` | Extraction accuracy; correction-memory held-out test |
-| Mutation orders (दाखिल-खारिज) | 3 documents, 27 ground-truth fields | `prisma/seed-mutation-orders.ts` | Classification; order extraction |
+| Mutation orders (दाखिल-खारिज) | 3 documents, 30 ground-truth fields | `prisma/seed-mutation-orders.ts` | Classification; order extraction |
 | Marathi 7/12 extract | 1 document, 9 fields | `prisma/seed-multilingual.ts` | Multilingual demonstration |
 | Simulated authoritative sources | 7 records across RoR, Registration, Cadastral | `prisma/seed-authoritative.ts` | Cross-source reconciliation |
 | Ownership chains | 5 parcels, 20 mutation entries, 2005–2025 | `prisma/seed-chains.ts` | Chain-of-title validation |
+| Village cadastral maps | 8 villages, 36 plots, invented boundaries | `src/lib/village-maps.ts` | Record-against-map checks: area, overlap, khasra missing from the map |
 
 **How the scans are made.** Each scan is rendered as an image of a printed
 government form on aged paper, in five Uttar Pradesh districts (Varanasi,
@@ -68,8 +69,8 @@ npm run benchmark -- --json  # also write benchmark-results.json
 | Wrong fields flagged for a person | 42 / 49 — 86% |
 | Correction memory, held out | 64% → 73% on 9 unseen documents, no regressions |
 | Document classification | 17 / 17 khatauni, 3 / 3 mutation orders |
-| Mutation-order fields, exact as printed | 16 / 27 — 59% |
-| Mutation-order fields, usable | 26 / 27 — 96% (same person, date, share or transfer type once matra reordering is set aside) |
+| Mutation-order fields, exact as printed | 19 / 30 — 63% |
+| Mutation-order fields, usable | 29 / 30 — 97% (same person, date, share or transfer type once matra reordering is set aside) |
 | Marathi 7/12, auto-detected language | 6 / 9 exact |
 | Marathi 7/12, `language: mar` | 7 / 9 exact |
 
@@ -90,6 +91,7 @@ npm run benchmark -- --json  # also write benchmark-results.json
   `tessdata_fast`. The larger `tessdata_best` models are more accurate and
   slower; swapping them in is a build-time change, and would be measured with
   the same benchmark before any new figure is quoted.
+- **Invented geometry.** The village maps' plot boundaries are made up. They show how a record is checked against cadastral data; they are not real parcels, and no GIS or Bhu-Naksha data is used.
 - **One state's forms.** Labels are those of Uttar Pradesh khatauni and
   mutation orders, plus Marathi 7/12 labels. Other states' forms need their
   own label sets.

@@ -58,7 +58,23 @@ model User {
   role         Role       @default(VERIFIER)
   documents    Document[]
   auditLogs    AuditLog[]
+  apiTokens    ApiToken[]
   createdAt    DateTime   @default(now())
+}
+
+/// A key another government system uses to read approved records over the
+/// API. Only its hash is stored; the key itself is shown once, when created.
+model ApiToken {
+  id          String    @id @default(cuid())
+  name        String
+  /// The first characters of the key, so an admin can tell keys apart.
+  prefix      String
+  tokenHash   String    @unique
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  createdById String
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
 }
 
 /// What a scanned page is. Decided by the pipeline from the page's heading,
@@ -127,6 +143,8 @@ model ExtractedMutation {
   khasraNumber   String?
   village        String?
   district       String?
+  /// Registration information: the sale deed the order rests on, as printed.
+  deedNumber     String?
   confidence     Json
   /// The register entry this order became, once an officer approved it.
   mutationId     String?  @unique

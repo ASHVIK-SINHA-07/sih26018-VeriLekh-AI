@@ -29,7 +29,7 @@ export interface SeedMutationOrder {
   fromOwner: string;
   toOwner: string;
   share: string;           // as printed: 1/2 or सम्पूर्ण
-  deed?: string;
+  deedNumber?: string;
   note: string;
 }
 
@@ -39,7 +39,7 @@ export const SEED_MUTATION_ORDERS: SeedMutationOrder[] = [
     mutationNumber: "1204/2026", orderDate: "14/08/2026",
     district: "लखनऊ", tehsil: "मलिहाबाद", village: "भगवंतपुर", khasraNumber: "58/1",
     mutationType: "विक्रय", fromOwner: "सुनीता देवी मिश्रा", toOwner: "रवि शंकर पाण्डेय",
-    share: "सम्पूर्ण", deed: "9012/2026",
+    share: "सम्पूर्ण", deedNumber: "9012/2026",
     note: "PLANTED — double sale: the seller already sold this parcel in 2025",
   },
   {
@@ -47,7 +47,7 @@ export const SEED_MUTATION_ORDERS: SeedMutationOrder[] = [
     mutationNumber: "1318/2026", orderDate: "02/09/2026",
     district: "वाराणसी", tehsil: "पिंडरा", village: "रामपुर खुर्द", khasraNumber: "142/3",
     mutationType: "दान", fromOwner: "राजेश कुमार वर्मा", toOwner: "अमित वर्मा",
-    share: "1/2", deed: "4470/2026",
+    share: "1/2", deedNumber: "4470/2026",
     note: "sound gift of half the parcel — approve it to watch the chain update",
   },
   {
@@ -55,7 +55,7 @@ export const SEED_MUTATION_ORDERS: SeedMutationOrder[] = [
     mutationNumber: "412/2009", orderDate: "11/05/2009",
     district: "गोरखपुर", tehsil: "सदर", village: "चांदपुर", khasraNumber: "91/4",
     mutationType: "विक्रय", fromOwner: "हरि प्रसाद सिंह", toOwner: "अनिल कुमार सिंह",
-    share: "सम्पूर्ण", deed: "1133/2009",
+    share: "सम्पूर्ण", deedNumber: "1133/2009",
     note: "first order for a parcel with no digitised history — begins its chain",
   },
 ];
@@ -79,7 +79,7 @@ export function renderMutationOrderScan(o: SeedMutationOrder): string {
     ["हस्तांतरणकर्ता", o.fromOwner],
     ["प्राप्तकर्ता", o.toOwner],
     ["अंतरित अंश", o.share],
-    ...(o.deed ? [["विलेख संख्या", o.deed] as [string, string]] : []),
+    ...(o.deedNumber ? [["विलेख संख्या", o.deedNumber] as [string, string]] : []),
   ];
 
   const lines = rows.map(([label, value], i) => {

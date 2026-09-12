@@ -1,5 +1,6 @@
 import { Panel } from "@/components/panel";
 import { getI18n } from "@/i18n/server";
+import { DISTRICT_HQ as HQ } from "@/lib/geography";
 
 /**
  * Field-visit priority on a schematic outline of Uttar Pradesh.
@@ -19,28 +20,6 @@ export interface MapDistrict {
   /** Records that need someone sent to check on the ground. */
   needVisit: number;
 }
-
-/** District headquarters, [longitude, latitude], approximate. */
-const HQ: Record<string, [number, number]> = {
-  "लखनऊ": [80.95, 26.85],
-  "कानपुर नगर": [80.35, 26.45],
-  "प्रयागराज": [81.85, 25.44],
-  "वाराणसी": [82.99, 25.32],
-  "गोरखपुर": [83.37, 26.76],
-  "आगरा": [78.01, 27.18],
-  "मेरठ": [77.71, 28.98],
-  "बरेली": [79.43, 28.37],
-  "झाँसी": [78.57, 25.45],
-  "झांसी": [78.57, 25.45],
-  "अयोध्या": [82.2, 26.79],
-  "मुरादाबाद": [78.78, 28.84],
-  "अलीगढ़": [78.08, 27.88],
-  "सहारनपुर": [77.55, 29.96],
-  "मिर्ज़ापुर": [82.57, 25.15],
-  "मिर्जापुर": [82.57, 25.15],
-  "आज़मगढ़": [83.18, 26.07],
-  "आजमगढ़": [83.18, 26.07],
-};
 
 /** Uttar Pradesh, simplified by hand to 41 points, [longitude, latitude]. */
 const OUTLINE: [number, number][] = [

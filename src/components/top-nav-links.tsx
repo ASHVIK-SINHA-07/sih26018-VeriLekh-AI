@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, ClipboardCheck, Upload } from "lucide-react";
+import { BarChart3, ClipboardCheck, KeyRound, Upload } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import type { Role } from "@/types";
 
@@ -14,6 +14,7 @@ const SECTIONS = [
   { href: "/upload", label: "nav.upload", icon: Upload, roles: ["ADMIN", "VERIFIER"] },
   { href: "/verify", label: "nav.verification", icon: ClipboardCheck, roles: ["ADMIN", "VERIFIER"] },
   { href: "/dashboard", label: "nav.dashboard", icon: BarChart3, roles: ["ADMIN", "VERIFIER", "VIEWER"] },
+  { href: "/admin/api", label: "nav.api", icon: KeyRound, roles: ["ADMIN"] },
 ] as const;
 
 export function TopNavLinks({

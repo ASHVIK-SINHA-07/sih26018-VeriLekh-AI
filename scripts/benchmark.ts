@@ -204,6 +204,7 @@ for (const o of SEED_MUTATION_ORDERS) {
   const r = orderReads.find((x) => x.name === o.filename)!;
   for (const f of MUTATION_FIELD_NAMES) {
     const truth = o[f];
+    if (truth == null) continue;          // not printed on this order
     const got = r.fields[f];
     mTotal++;
     mPerField[f] ??= { n: 0, exact: 0, usable: 0 };

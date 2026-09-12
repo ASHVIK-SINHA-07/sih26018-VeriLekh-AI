@@ -15,7 +15,10 @@ import type { Role } from "@/types";
  */
 
 /** Routes under the `(app)` group. Route groups are not part of the URL. */
-const SIGNED_IN_ONLY = ["/upload", "/verify", "/dashboard"];
+const SIGNED_IN_ONLY = ["/upload", "/verify", "/dashboard", "/admin"];
+
+/** API keys and anything else under /admin: Admins only. */
+const ADMIN_ONLY = ["/admin"];
 
 /** Doc 03 permission matrix: a Viewer has dashboard access only. */
 const VERIFIER_OR_ADMIN_ONLY = ["/upload", "/verify"];
@@ -63,6 +66,9 @@ export const authConfig = {
         // page rather than a dead end.
         if (role === "VIEWER" && matches(pathname, VERIFIER_OR_ADMIN_ONLY)) {
           return Response.redirect(new URL("/dashboard", nextUrl));
+        }
+        if (role !== "ADMIN" && matches(pathname, ADMIN_ONLY)) {
+          return Response.redirect(new URL(landingPageFor(role as Role), nextUrl));
         }
         return true;
       }

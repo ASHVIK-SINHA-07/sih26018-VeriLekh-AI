@@ -57,3 +57,6 @@ docs/
 # working notes, not part of the deliverable
 .notes/
 benchmark-results.json
+
+# demo upload samples — kept local for now, not part of the deliverable
+/samples/

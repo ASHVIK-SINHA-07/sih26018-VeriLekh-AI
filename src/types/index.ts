@@ -187,8 +187,30 @@ export interface VerifyResponse {
 }
 
 /** GET /api/dashboard/stats */
+/** Kinds of problem, as the dashboard's error statistics group them. */
+export type ErrorCategory =
+  | "duplicateParcel" | "chain" | "otherSystems" | "ownerMismatch"
+  | "missing" | "implausible" | "lowConfidence" | "autoCorrected";
+
 export interface DashboardStats {
   totalProcessed: number;
+  /**
+   * Extraction accuracy as officers see it: of the fields on approved
+   * Records of Rights, how many they accepted without changing. One audit
+   * entry is written per corrected field (D26), so this is exact.
+   */
+  fieldAccuracy: { accepted: number; total: number; records: number };
+  /** Records by validation result, plus documents not yet read. */
+  validation: { pass: number; flagged: number; duplicate: number; notRead: number };
+  /** Records with at least one stored finding of each kind. */
+  errorCounts: Record<ErrorCategory, number>;
+  byState: {
+    state: "UP" | "UNASSIGNED";
+    documents: number;
+    verified: number;
+    awaiting: number;
+    districts: number;
+  }[];
   avgAccuracy: number;
   /** Mean 0-100 data quality score across scored records. */
   avgQuality: number;

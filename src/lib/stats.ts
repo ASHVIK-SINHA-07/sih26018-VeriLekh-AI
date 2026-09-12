@@ -1,5 +1,11 @@
 import { db } from "@/lib/db";
-import type { ConfidenceMap, DashboardStats } from "@/types";
+import { fromJson } from "@/lib/json";
+import { tallyRecords } from "@/lib/error-stats";
+import { stateOf } from "@/lib/geography";
+import type { ConfidenceMap, DashboardStats, ValidationIssue } from "@/types";
+
+/** Fields that make up a Record of Rights — the denominator for accuracy. */
+const RECORD_FIELDS = 9;
 
 /**
  * Dashboard aggregates — docs/02_Technical_Architecture.md.
@@ -43,7 +49,7 @@ export async function getDashboardStats(
   since.setDate(since.getDate() - (TREND_DAYS - 1));
   since.setHours(0, 0, 0, 0);
 
-  const [statusCounts, records, districtRows, trendRows] = await Promise.all([
+  const [statusCounts, records, districtRows, trendRows, approved, results, placed] = await Promise.all([
     db.document.groupBy({
       by: ["status"],
       where: scope,
@@ -62,6 +68,26 @@ export async function getDashboardStats(
     db.document.findMany({
       where: { ...scope, createdAt: { gte: since } },
       select: { createdAt: true },
+    }),
+    // Approved Records of Rights, each with how many of its fields an
+    // officer corrected before approving.
+    db.document.findMany({
+      where: { ...scope, status: "VERIFIED", documentType: "KHATAUNI" },
+      select: { _count: { select: { auditLogs: { where: { action: "EDIT_FIELD" } } } } },
+    }),
+    // Stored validation, for results and error statistics. Rejected
+    // documents are out of the working set.
+    db.validationResult.findMany({
+      where: { document: { ...scope, status: { not: "REJECTED" } } },
+      select: { status: true, issues: true },
+    }),
+    // Every document with the district it belongs to, for the state view.
+    db.document.findMany({
+      select: {
+        status: true,
+        record: { select: { district: true } },
+        mutation: { select: { district: true } },
+      },
     }),
   ]);
 
@@ -113,8 +139,51 @@ export async function getDashboardStats(
     if (byDay.has(key)) byDay.set(key, (byDay.get(key) ?? 0) + 1);
   }
 
+  const corrected = approved.reduce((sum, doc) => sum + doc._count.auditLogs, 0);
+  const fieldTotal = approved.length * RECORD_FIELDS;
+  const fieldAccuracy = {
+    accepted: Math.max(0, fieldTotal - corrected),
+    total: fieldTotal,
+    records: approved.length,
+  };
+
+  const validation = {
+    pass: results.filter((r) => r.status === "PASS").length,
+    flagged: results.filter((r) => r.status === "FLAGGED").length,
+    duplicate: results.filter((r) => r.status === "DUPLICATE").length,
+    notRead: countOf("UPLOADED") + countOf("PROCESSING"),
+  };
+  const errorCounts = tallyRecords(results.map((r) => fromJson<ValidationIssue[]>(r.issues, [])));
+
+  // State → its documents, counted by where each record says it is.
+  const states = new Map<string, { documents: number; verified: number; awaiting: number; districts: Set<string> }>();
+  for (const doc of placed) {
+    const district = doc.record?.district ?? doc.mutation?.district ?? null;
+    if (!district) continue; // not read yet: no place to put it
+    const state = stateOf(district) ?? "UNASSIGNED";
+    const row = states.get(state) ?? { documents: 0, verified: 0, awaiting: 0, districts: new Set<string>() };
+    row.documents += 1;
+    if (doc.status === "VERIFIED") row.verified += 1;
+    if (doc.status === "PENDING" || doc.status === "FLAGGED") row.awaiting += 1;
+    row.districts.add(district);
+    states.set(state, row);
+  }
+  const byState = [...states.entries()]
+    .map(([state, row]) => ({
+      state: state as "UP" | "UNASSIGNED",
+      documents: row.documents,
+      verified: row.verified,
+      awaiting: row.awaiting,
+      districts: row.districts.size,
+    }))
+    .sort((a, b) => (a.state === "UNASSIGNED" ? 1 : b.state === "UNASSIGNED" ? -1 : b.documents - a.documents));
+
   return {
     totalProcessed,
+    fieldAccuracy,
+    validation,
+    errorCounts,
+    byState,
     avgAccuracy,
     avgQuality,
     lowQuality,

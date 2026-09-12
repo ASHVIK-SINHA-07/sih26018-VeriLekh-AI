@@ -69,6 +69,7 @@ export async function loadParcelHistory(key: ParcelKey): Promise<{ parcelId: str
       recordedAt: m.recordedAt,
       supersedesId: m.supersedesId,
       sourceDocumentId: m.sourceDocumentId,
+      orderReference: m.orderReference,
     })),
   };
 }

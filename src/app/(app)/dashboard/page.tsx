@@ -11,6 +11,9 @@ import { Panel } from "@/components/panel";
 import { EmptyState } from "@/components/empty-state";
 import { DistrictRiskPanel } from "@/components/district-risk-panel";
 import { DistrictMap } from "@/components/district-map";
+import { StateProgressPanel } from "@/components/state-progress-panel";
+import { ErrorStatsPanel } from "@/components/error-stats-panel";
+import { ERROR_CATEGORIES } from "@/lib/error-stats";
 import { getI18n } from "@/i18n/server";
 import { formatCount, formatDate, relativeTime, renderFinding } from "@/i18n/translate";
 import type { Metadata } from "next";
@@ -82,6 +85,20 @@ export default async function DashboardPage({
     ),
   }));
 
+  // Cross-source disagreements and chain defects are worked out live from
+  // each record's evidence, not stored with its validation — take those from
+  // the same figures as the district table, so the two panels agree.
+  const riskTotals = districtRisk.reduce(
+    (sum, d) => ({ conflicts: sum.conflicts + d.reconciliationConflicts, chain: sum.chain + d.chainDefects }),
+    { conflicts: 0, chain: 0 },
+  );
+  const errorRows = ERROR_CATEGORIES.map((category) => ({
+    category,
+    records:
+      stats.errorCounts[category] +
+      (category === "otherSystems" ? riskTotals.conflicts : category === "chain" ? riskTotals.chain : 0),
+  }));
+
   return (
     <>
       <ScreenHeader
@@ -96,11 +113,27 @@ export default async function DashboardPage({
 
       <div className="space-y-5 p-4 sm:p-7">
         {/* KPI strip */}
-        <div data-tour="dash-stats" className="grid grid-cols-1 divide-y divide-hairline border border-hairline bg-panel sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 sm:[&>*:nth-child(n+2)]:border-l sm:[&>*]:border-hairline lg:divide-x">
+        <div data-tour="dash-stats" className="grid grid-cols-1 divide-y divide-hairline border border-hairline bg-panel sm:grid-cols-3 sm:divide-y-0 lg:grid-cols-5 sm:[&>*:nth-child(n+2)]:border-l sm:[&>*]:border-hairline lg:divide-x">
           <StatCard
             label={t("dashboard.processed")}
             value={asCount(stats.totalProcessed)}
             hint={t("dashboard.processedHint")}
+          />
+          <StatCard
+            label={t("dashboard.accuracy")}
+            value={
+              stats.fieldAccuracy.total > 0
+                ? `${Math.round((stats.fieldAccuracy.accepted / stats.fieldAccuracy.total) * 100)}%`
+                : "—"
+            }
+            hint={
+              stats.fieldAccuracy.total > 0
+                ? t("dashboard.accuracyHint", {
+                    accepted: asCount(stats.fieldAccuracy.accepted),
+                    total: asCount(stats.fieldAccuracy.total),
+                  })
+                : t("dashboard.accuracyNone")
+            }
           />
           <StatCard
             label={t("dashboard.quality")}
@@ -145,13 +178,7 @@ export default async function DashboardPage({
           </div>
         ) : null}
 
-        <Panel
-          title={t("dashboard.trendTitle")}
-          meta={t("dashboard.trendMeta")}
-          bodyClassName="px-4 pt-4 pb-2"
-        >
-          <TrendChart data={stats.trend.map((point) => ({ ...point, label: formatDate(locale, point.date, "short") }))} />
-        </Panel>
+        <StateProgressPanel rows={stats.byState} />
 
         <DistrictMap
           districts={(unfilteredRisk ?? districtRisk).map((d) => ({
@@ -163,6 +190,17 @@ export default async function DashboardPage({
         />
 
         <DistrictRiskPanel rows={districtRisk} />
+
+        <ErrorStatsPanel validation={stats.validation} errors={errorRows} />
+
+        <Panel
+          title={t("dashboard.trendTitle")}
+          meta={t("dashboard.trendMeta")}
+          bodyClassName="px-4 pt-4 pb-2"
+        >
+          <TrendChart data={stats.trend.map((point) => ({ ...point, label: formatDate(locale, point.date, "short") }))} />
+        </Panel>
+
 
         <Panel
           tour="dash-activity"

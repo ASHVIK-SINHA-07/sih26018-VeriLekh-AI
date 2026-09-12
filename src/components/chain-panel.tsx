@@ -134,6 +134,7 @@ export async function ChainPanel({
                 </p>
                 <p className="mt-0.5 text-[12.5px] text-ink-3">
                   {m.mutationNumber ? t("chain.mutationNumber", { number: m.mutationNumber }) : t("chain.noNumber")}
+                  {m.orderReference ? ` · ${t("chain.registration", { ref: m.orderReference })}` : null}
                   {` · ${t("chain.entry", { seq: m.seq })}`}
                   {` · ${t("chain.digitised", { date: d(m.recordedAt) })}`}
                   {m.id === highlightId ? <span className="font-semibold text-navy"> · {t("chain.thisOrder")}</span> : null}

@@ -7,6 +7,7 @@ import { AuditTrail } from "@/components/audit-trail";
 import { QualityPanel } from "@/components/quality-panel";
 import { ReconciliationPanel } from "@/components/reconciliation-panel";
 import { ChainPanel } from "@/components/chain-panel";
+import { VillageMapPanel } from "@/components/village-map-panel";
 import { gatherEvidence } from "@/lib/evidence";
 import { scoreRecord } from "@/lib/quality";
 import { verifyDocumentChain } from "@/lib/audit";
@@ -145,6 +146,12 @@ export default async function VerifyDetailPage({
       <QualityPanel quality={quality} chain={provenance} />
       <ChainPanel chain={evidence.chain} khasra={fields.khasraNumber} />
       <ReconciliationPanel result={evidence.reconciliation} />
+      <VillageMapPanel
+        district={fields.district}
+        village={fields.village}
+        khasraNumber={fields.khasraNumber}
+        plotArea={fields.plotArea}
+      />
       <AuditTrail entries={auditEntries} />
     </div>
     </div>

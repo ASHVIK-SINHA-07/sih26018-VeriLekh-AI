@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ScreenHeader } from "@/components/screen-header";
+import { Tour } from "@/components/tour";
 import { UploadClient, type RecentUpload } from "./upload-client";
 import { getI18n } from "@/i18n/server";
 import { relativeTime } from "@/i18n/translate";
@@ -50,6 +51,7 @@ export default async function UploadPage() {
       />
       <div className="p-4 sm:p-7">
         <UploadClient recent={recent} />
+        <Tour screen="upload" />
       </div>
     </>
   );

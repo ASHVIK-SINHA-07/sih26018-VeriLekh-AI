@@ -57,7 +57,7 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
   return (
     <div className="border border-hairline bg-panel">
       {/* filter bar */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-hairline bg-panel-alt px-4 py-2.5">
+      <div data-tour="queue-filters" className="flex flex-wrap items-center gap-3 border-b border-hairline bg-panel-alt px-4 py-2.5">
         <div className="relative w-full sm:w-auto">
           <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -112,7 +112,7 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
           />
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div data-tour="queue-table" className="overflow-x-auto">
           <table className="w-full text-[13px]">
             <thead>
               <tr className="border-b border-hairline bg-panel-alt">

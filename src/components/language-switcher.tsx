@@ -10,7 +10,14 @@ import { useI18n } from "@/i18n/client";
  * Each option is written in its own script, so someone who reads only Bengali
  * can find "বাংলা" without first reading the English around it.
  */
-export function LanguageSwitcher({ tone = "rail" }: { tone?: "rail" | "paper" }) {
+export function LanguageSwitcher({
+  tone = "rail",
+  compact = false,
+}: {
+  tone?: "rail" | "paper";
+  /** In the navigation bar: no visible label, a fixed-width control. */
+  compact?: boolean;
+}) {
   const router = useRouter();
   const { locale, t } = useI18n();
 
@@ -28,14 +35,16 @@ export function LanguageSwitcher({ tone = "rail" }: { tone?: "rail" | "paper" })
 
   return (
     <label className="flex items-center gap-2">
-      <span className={`text-[11px] ${tone === "rail" ? "text-rail-muted" : "text-muted-foreground"}`}>
-        {t("nav.language")}
-      </span>
+      {compact ? null : (
+        <span className={`text-[11px] ${tone === "rail" ? "text-rail-muted" : "text-muted-foreground"}`}>
+          {t("nav.language")}
+        </span>
+      )}
       <select
         value={locale}
         onChange={(event) => choose(event.target.value as Locale)}
         aria-label={t("nav.language")}
-        className={`h-7 min-w-0 flex-1 border px-1.5 text-[12.5px] outline-none focus-visible:border-navy ${control}`}
+        className={`h-7 min-w-0 border px-1.5 text-[12.5px] outline-none focus-visible:border-navy ${compact ? "w-[7.5rem]" : "flex-1"} ${control}`}
       >
         {LOCALES.map((code) => (
           <option key={code} value={code} lang={code}>

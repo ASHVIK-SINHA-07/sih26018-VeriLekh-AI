@@ -41,6 +41,7 @@ export async function DistrictRiskPanel({ rows }: { rows: DistrictRisk[] }) {
 
   return (
     <Panel
+      tour="dash-risk"
       title={t("risk.title")}
       meta={
         totalNeedingVisit === 0

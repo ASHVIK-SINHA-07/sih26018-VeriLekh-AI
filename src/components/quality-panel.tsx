@@ -57,7 +57,7 @@ export async function QualityPanel({
   ];
 
   return (
-    <div className={`border border-hairline border-l-[3px] ${style.ring} bg-panel`}>
+    <div data-tour="review-quality" className={`border border-hairline border-l-[3px] ${style.ring} bg-panel`}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-hairline px-4 py-3">
         <p className="text-[13.5px] font-semibold text-foreground">{t("quality.title")}</p>
         <p className="text-[12.5px] text-ink-2">{t("quality.weights")}</p>

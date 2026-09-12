@@ -19,6 +19,7 @@ import type {
 import { TrendChart } from "./trend-chart";
 import { DistrictFilter } from "./district-filter";
 import { ActivityTable, type ActivityRow } from "./activity-table";
+import { Tour } from "@/components/tour";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -91,7 +92,7 @@ export default async function DashboardPage({
 
       <div className="space-y-5 p-4 sm:p-7">
         {/* KPI strip */}
-        <div className="grid grid-cols-1 divide-y divide-hairline border border-hairline bg-panel sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 sm:[&>*:nth-child(n+2)]:border-l sm:[&>*]:border-hairline lg:divide-x">
+        <div data-tour="dash-stats" className="grid grid-cols-1 divide-y divide-hairline border border-hairline bg-panel sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 sm:[&>*:nth-child(n+2)]:border-l sm:[&>*]:border-hairline lg:divide-x">
           <StatCard
             label={t("dashboard.processed")}
             value={asCount(stats.totalProcessed)}
@@ -151,6 +152,7 @@ export default async function DashboardPage({
         <DistrictRiskPanel rows={districtRisk} />
 
         <Panel
+          tour="dash-activity"
           title={t("dashboard.recentTitle")}
           meta={t("dashboard.recentMeta", { count: rows.length })}
         >
@@ -168,6 +170,7 @@ export default async function DashboardPage({
           )}
         </Panel>
       </div>
+      <Tour screen="dashboard" />
     </>
   );
 }

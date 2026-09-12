@@ -354,6 +354,8 @@ Chain of title — ownership replayed 2005–2025    █████████
 Mutation orders read from scans, into the chain  ██████████  complete
 District field-verification priority             ██████████  complete
 Interface in 5 languages — hi, mr, bn, pa, en    ██████████  complete, awaiting native review
+Public record check — no login, no personal data ██████████  complete
+Guided tour of every screen, 5 languages         ██████████  complete
 Append-only audit trail, hash-chained            ██████████  complete
 Role-based access control                        ██████████  complete
 Dashboards and reporting                         ██████████  complete

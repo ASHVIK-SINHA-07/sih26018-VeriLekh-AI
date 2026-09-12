@@ -13,12 +13,13 @@
  * are package or relative-with-extension only — the `@/*` alias is a tsconfig
  * feature Node does not resolve.
  */
+import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
 import { entryHash } from "@/lib/provenance";
 import { scoreRecord } from "@/lib/quality";
 import { gatherEvidence } from "@/lib/evidence";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { PrismaClient, type Role } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { SEED_DOCS, type SeedDoc } from "./seed-data.ts";
 import { SEED_AUTHORITATIVE } from "./seed-authoritative.ts";
@@ -37,11 +38,7 @@ const UPLOAD_DIR = process.env.UPLOAD_DIR ?? "./uploads";
 const SCAN_SUBDIR = "seed";
 
 /** Demo accounts — local development only. */
-const USERS: { email: string; name: string; role: Role; password: string }[] = [
-  { email: "admin@revenue.gov.in", name: "Sunita Rao", role: "ADMIN", password: "Admin@12345" },
-  { email: "verifier@revenue.gov.in", name: "Rajesh Kumar", role: "VERIFIER", password: "Verify@12345" },
-  { email: "viewer@revenue.gov.in", name: "Anil Deshpande", role: "VIEWER", password: "Viewer@12345" },
-];
+const USERS = DEMO_ACCOUNTS;
 
 function daysAgo(days: number): Date {
   const d = new Date();

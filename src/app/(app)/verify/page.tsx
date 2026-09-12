@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fromJson } from "@/lib/json";
 import { ScreenHeader } from "@/components/screen-header";
+import { Tour } from "@/components/tour";
 import { REVIEWABLE_STATUSES, type ValidationIssue } from "@/types";
 import { QueueTable, type QueueRow } from "./queue-table";
 import { getI18n } from "@/i18n/server";
@@ -65,6 +66,7 @@ export default async function VerifyQueuePage() {
       />
       <div className="p-4 sm:p-7">
         <QueueTable rows={rows} />
+        <Tour screen="queue" />
       </div>
     </>
   );

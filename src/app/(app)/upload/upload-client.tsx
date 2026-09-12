@@ -185,6 +185,7 @@ export function UploadClient({ recent }: { recent: RecentUpload[] }) {
     <div className="space-y-8">
       {/* ------------------------------------------------------- drop zone */}
       <div
+        data-tour="upload-drop"
         onDragOver={(event) => {
           event.preventDefault();
           setDragging(true);
@@ -278,7 +279,7 @@ export function UploadClient({ recent }: { recent: RecentUpload[] }) {
 
       {/* ------------------------------------------------- recent uploads */}
       <section className="space-y-3">
-        <Panel title={t("upload.recent")} meta={t("upload.recentMeta", { count: recent.length })}>
+        <Panel tour="upload-recent" title={t("upload.recent")} meta={t("upload.recentMeta", { count: recent.length })}>
         {recent.length === 0 ? (
           <div className="p-6">
             <EmptyState title={t("upload.emptyTitle")} hint={t("upload.emptyHint")} />

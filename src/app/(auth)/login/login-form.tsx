@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,10 @@ export function LoginForm() {
     error: null,
   });
   const { t } = useI18n();
+  const [shown, setShown] = useState(false);
+  const [capsLock, setCapsLock] = useState(false);
+  const readCaps = (event: React.KeyboardEvent<HTMLInputElement>) =>
+    setCapsLock(event.getModifierState("CapsLock"));
 
   return (
     <form action={formAction} className="space-y-4">
@@ -41,14 +46,31 @@ export function LoginForm() {
 
       <div className="space-y-2">
         <Label htmlFor="password">{t("login.password")}</Label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          aria-invalid={state.error ? true : undefined}
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            name="password"
+            type={shown ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            onKeyDown={readCaps}
+            onKeyUp={readCaps}
+            aria-invalid={state.error ? true : undefined}
+            className="pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShown((v) => !v)}
+            aria-label={shown ? t("login.hidePassword") : t("login.showPassword")}
+            aria-pressed={shown}
+            className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground transition-colors hover:text-navy"
+          >
+            {shown ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          </button>
+        </div>
+        {capsLock ? (
+          <p className="text-[12px] text-low-confidence">{t("login.capsLock")}</p>
+        ) : null}
       </div>
 
       {state.error ? (

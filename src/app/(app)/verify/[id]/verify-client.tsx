@@ -10,6 +10,7 @@ import { NgdrsPanel } from "@/components/ngdrs-panel";
 import { ScanViewer } from "@/components/scan-viewer";
 import { Panel } from "@/components/panel";
 import { useI18n } from "@/i18n/client";
+import { Tour } from "@/components/tour";
 import type { DocumentStatus, ValidationSummary } from "@/types";
 
 /**
@@ -134,6 +135,7 @@ export function VerifyClient(props: Props) {
       {/* -------------------------------------------------- validation banner */}
       {props.validation && props.validation.issues.length > 0 ? (
         <div
+          data-tour="review-banner"
           className={`border-l-[3px] bg-panel px-4 py-3 ${
             props.validation.status === "DUPLICATE"
               ? "border-l-status-flagged"
@@ -182,7 +184,7 @@ export function VerifyClient(props: Props) {
       {/* ------------------------------------------------------ two columns */}
       <div className="grid gap-5 p-4 pt-4 sm:p-7 sm:pt-4 xl:grid-cols-2">
         {/* left: the scan */}
-        <Panel title={t("verify.scanTitle")} meta={t("verify.scanMeta")}>
+        <Panel tour="review-scan" title={t("verify.scanTitle")} meta={t("verify.scanMeta")}>
           <div>
             <ScanViewer src={scanUrl} filename={props.filename} isPdf={isPdf} />
           </div>
@@ -194,6 +196,7 @@ export function VerifyClient(props: Props) {
         {/* right: the fields */}
         <div className="space-y-4">
           <Panel
+            tour="review-fields"
             title={props.fieldsTitle}
             meta={
               edited.size > 0 ? (
@@ -234,7 +237,7 @@ export function VerifyClient(props: Props) {
               {props.status === "VERIFIED" ? t("verify.decidedApproved") : t("verify.decidedRejected")}
             </p>
           ) : (
-            <div className="flex flex-wrap items-center gap-3 border border-hairline bg-panel px-4 py-3">
+            <div data-tour="review-actions" className="flex flex-wrap items-center gap-3 border border-hairline bg-panel px-4 py-3">
               <Button
                 variant="outline"
                 disabled={submitting !== null}
@@ -255,6 +258,7 @@ export function VerifyClient(props: Props) {
           )}
         </div>
       </div>
+      <Tour screen="review" />
     </section>
   );
 }

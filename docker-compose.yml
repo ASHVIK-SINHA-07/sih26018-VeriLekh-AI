@@ -64,6 +64,8 @@ services:
       AUTH_SECRET: "${AUTH_SECRET:?set AUTH_SECRET in .env - generate one with openssl rand -base64 32}"
       AUTH_TRUST_HOST: "true"
       NODE_ENV: production
+      # Lists the seeded demo accounts on the sign-in page. Local demos only.
+      DEMO_MODE: "${DEMO_MODE:-false}"
     volumes:
       # Scans are written here by the app and read by the OCR service. Bound to
       # the host so a department can back them up with its existing tooling.

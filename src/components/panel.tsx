@@ -20,7 +20,7 @@ export function Panel({
     <section data-tour={tour} className="border border-hairline bg-panel">
       <div className="flex items-center justify-between gap-3 border-b border-hairline bg-panel-alt px-4 py-2.5">
         <h2>{title}</h2>
-        {meta ? <div className="text-[12px] text-muted-foreground">{meta}</div> : null}
+        {meta ? <div className="text-[13px] text-muted-foreground">{meta}</div> : null}
       </div>
       <div className={bodyClassName}>{children}</div>
     </section>

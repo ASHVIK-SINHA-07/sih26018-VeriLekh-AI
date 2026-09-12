@@ -34,10 +34,10 @@ export async function TopNav({ name, role }: { name: string; role: Role }) {
 
   return (
     <header className="sticky top-0 z-40 bg-rail text-rail-ink shadow-[0_1px_0_rgba(0,0,0,0.25)]">
-      <div className="grid h-14 grid-cols-[1fr_auto] items-center gap-4 px-4 sm:px-7 lg:grid-cols-[1fr_auto_1fr]">
+      <div className="grid h-16 grid-cols-[1fr_auto] items-center gap-4 px-4 sm:px-7 lg:grid-cols-[1fr_auto_1fr]">
         <Link href="/" className="flex min-w-0 items-center gap-3">
-          <Logo tone="onDark" className="h-[26px] w-auto shrink-0" />
-          <span className="hidden truncate border-l border-white/15 pl-3 text-[12px] leading-tight text-rail-muted xl:block">
+          <Logo tone="onDark" className="h-[34px] w-auto shrink-0" />
+          <span className="hidden truncate border-l border-white/15 pl-3 text-[13px] leading-tight text-rail-muted xl:block">
             {t("app.name")}
           </span>
         </Link>
@@ -51,7 +51,7 @@ export async function TopNav({ name, role }: { name: string; role: Role }) {
             <form action={logout}>
               <button
                 type="submit"
-                className="w-full border border-rule px-3 py-1.5 text-[12.5px] text-ink-2 transition-colors hover:border-navy hover:text-navy"
+                className="w-full border border-rule px-3 py-1.5 text-[14px] text-ink-2 transition-colors hover:border-navy hover:text-navy"
               >
                 {t("nav.logout")}
               </button>
@@ -63,12 +63,12 @@ export async function TopNav({ name, role }: { name: string; role: Role }) {
           <TopNavLinks role={role} layout="column" />
           <div className="space-y-3 border-t border-white/10 px-4 py-4">
             <div className="flex items-center gap-3">
-              <span className="flex size-8 items-center justify-center bg-rail-2 text-[11px] font-semibold tracking-wide">
+              <span className="flex size-8 items-center justify-center bg-rail-2 text-[12px] font-semibold tracking-wide">
                 {initials}
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-[13px] text-white">{name}</span>
-                <span className="block text-[10.5px] font-semibold tracking-[0.09em] text-rail-muted uppercase">
+                <span className="block truncate text-[14.5px] text-white">{name}</span>
+                <span className="block text-[11.5px] font-semibold tracking-[0.09em] text-rail-muted uppercase">
                   {roleLabel}
                 </span>
               </span>
@@ -78,7 +78,7 @@ export async function TopNav({ name, role }: { name: string; role: Role }) {
             <form action={logout}>
               <button
                 type="submit"
-                className="w-full border border-white/15 py-1.5 text-[12px] text-rail-muted transition-colors hover:border-white/35 hover:text-white"
+                className="w-full border border-white/15 py-1.5 text-[13px] text-rail-muted transition-colors hover:border-white/35 hover:text-white"
               >
                 {t("nav.logout")}
               </button>

@@ -59,9 +59,9 @@ export function AccountMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={t("nav.account")}
-        className="flex items-center gap-2 py-1 text-[13px] text-white/90 transition-colors hover:text-white"
+        className="flex items-center gap-2 py-1 text-[14.5px] text-white/90 transition-colors hover:text-white"
       >
-        <span className="flex size-7 items-center justify-center bg-rail-2 text-[10.5px] font-semibold tracking-wide">
+        <span className="flex size-9 items-center justify-center bg-rail-2 text-[11.5px] font-semibold tracking-wide">
           {initials}
         </span>
         <span className="max-w-[10rem] truncate">{name}</span>
@@ -73,7 +73,7 @@ export function AccountMenu({
           role="menu"
           className="absolute top-full right-0 mt-2 w-60 border border-hairline bg-panel p-3 text-foreground shadow-[0_8px_24px_rgba(20,24,31,0.14)]"
         >
-          <p className="truncate text-[13.5px] font-medium">{name}</p>
+          <p className="truncate text-[15px] font-medium">{name}</p>
           <p className="label-cap mt-0.5">{roleLabel}</p>
           <div className="mt-3 border-t border-hairline pt-3">{children}</div>
         </div>
@@ -107,7 +107,7 @@ export function MobileMenu({ children }: { children: React.ReactNode }) {
       </button>
 
       {open ? (
-        <div className="fixed inset-x-0 top-14 bottom-0 overflow-y-auto border-t border-white/10 bg-rail">
+        <div className="fixed inset-x-0 top-16 bottom-0 overflow-y-auto border-t border-white/10 bg-rail">
           {children}
         </div>
       ) : null}

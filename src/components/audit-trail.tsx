@@ -76,7 +76,7 @@ export async function AuditTrail({ entries }: { entries: AuditLogEntry[] }) {
     <section className="border border-hairline bg-panel">
       <div className="border-b border-hairline bg-panel-alt px-4 py-2.5">
         <h2>{t("audit.title")}</h2>
-        <p className="text-[12px] text-muted-foreground">{t("audit.subtitle")}</p>
+        <p className="text-[13px] text-muted-foreground">{t("audit.subtitle")}</p>
       </div>
 
       {entries.length === 0 ? (
@@ -92,14 +92,14 @@ export async function AuditTrail({ entries }: { entries: AuditLogEntry[] }) {
                 >
                   {AUDIT_ACTIONS.has(entry.action) ? t(`audit.${entry.action as "UPLOAD"}`) : entry.action}
                 </span>
-                <span className="text-[12.5px] text-muted-foreground">
+                <span className="text-[14px] text-muted-foreground">
                   {entry.actorName} · {t(`roles.${entry.actorRole}`)}
                 </span>
                 <span className="ml-auto text-xs text-muted-foreground tabular-nums">
                   {formatDateTime(locale, entry.timestamp)}
                 </span>
                 {detail ? (
-                  <p className="w-full text-[12.5px] text-ink-2">{detail}</p>
+                  <p className="w-full text-[14px] text-ink-2">{detail}</p>
                 ) : null}
               </li>
             );

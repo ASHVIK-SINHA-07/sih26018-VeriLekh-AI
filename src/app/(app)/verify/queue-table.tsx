@@ -52,7 +52,7 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
   }, [rows, query, status, district]);
 
   const control =
-    "h-8 border border-rule bg-panel px-2 text-[13px] outline-none focus-visible:border-navy";
+    "h-8 border border-rule bg-panel px-2 text-[14.5px] outline-none focus-visible:border-navy";
 
   return (
     <div className="border border-hairline bg-panel">
@@ -99,7 +99,7 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
           </label>
         ) : null}
 
-        <span className="ml-auto text-[12px] text-muted-foreground tabular-nums">
+        <span className="ml-auto text-[13px] text-muted-foreground tabular-nums">
           {t("common.xOfY", { x: filtered.length, y: rows.length })}
         </span>
       </div>
@@ -113,7 +113,7 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
         </div>
       ) : (
         <div data-tour="queue-table" className="overflow-x-auto">
-          <table className="w-full text-[13px]">
+          <table className="w-full text-[14.5px]">
             <thead>
               <tr className="border-b border-hairline bg-panel-alt">
                 <th className="label-cap px-4 py-2 text-left">{t("common.document")}</th>
@@ -138,13 +138,13 @@ export function QueueTable({ rows }: { rows: QueueRow[] }) {
                   <td className="hidden px-3 py-2.5 text-ink-2 md:table-cell">{row.village ?? "—"}</td>
                   <td className="hidden px-3 py-2.5 text-ink-2 sm:table-cell">{row.district ?? "—"}</td>
                   <td className="px-3 py-2.5"><StatusBadge status={row.status} /></td>
-                  <td className="hidden max-w-md truncate px-3 py-2.5 text-[12.5px] text-muted-foreground lg:table-cell">
+                  <td className="hidden max-w-md truncate px-3 py-2.5 text-[14px] text-muted-foreground lg:table-cell">
                     {row.topIssue ?? "—"}
                     {row.issueCount > 1 ? (
                       <span className="text-muted-foreground"> {t("common.more", { count: row.issueCount - 1 })}</span>
                     ) : null}
                   </td>
-                  <td className="hidden px-4 py-2.5 text-right text-[12px] text-muted-foreground tabular-nums sm:table-cell">
+                  <td className="hidden px-4 py-2.5 text-right text-[13px] text-muted-foreground tabular-nums sm:table-cell">
                     {row.updatedLabel}
                   </td>
                 </tr>

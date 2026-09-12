@@ -114,11 +114,11 @@ export default async function CheckPage({
                 autoComplete="off"
                 spellCheck={false}
                 maxLength={20}
-                className="h-9 min-w-0 flex-1 border border-rule bg-panel px-3 font-mono text-[14px] tracking-wide uppercase outline-none focus-visible:border-navy"
+                className="h-9 min-w-0 flex-1 border border-rule bg-panel px-3 font-mono text-[15.5px] tracking-wide uppercase outline-none focus-visible:border-navy"
               />
               <button
                 type="submit"
-                className="h-9 bg-navy px-4 text-[13.5px] font-medium text-white transition-opacity hover:opacity-90"
+                className="h-9 bg-navy px-4 text-[15px] font-medium text-white transition-opacity hover:opacity-90"
               >
                 {t("check.submit")}
               </button>
@@ -128,27 +128,27 @@ export default async function CheckPage({
           {result.kind === "empty" ? null : (
             <div role="status" className={`mt-5 border border-l-[3px] border-hairline bg-panel px-4 py-3 ${stripe}`}>
               {result.kind === "badFormat" ? (
-                <p className="text-[13.5px] text-ink-2">{t("check.badFormat")}</p>
+                <p className="text-[15px] text-ink-2">{t("check.badFormat")}</p>
               ) : result.kind === "tooMany" ? (
-                <p className="text-[13.5px] text-ink-2">{t("check.tooMany")}</p>
+                <p className="text-[15px] text-ink-2">{t("check.tooMany")}</p>
               ) : result.kind === "notFound" ? (
-                <p className="text-[13.5px] text-ink-2">{t("check.notFound")}</p>
+                <p className="text-[15px] text-ink-2">{t("check.notFound")}</p>
               ) : (
                 <div className="space-y-1.5">
-                  <p className="font-mono text-[12px] text-ink-3">{reference}</p>
-                  <p className={`text-[15px] font-semibold ${verified ? "text-status-verified" : "text-status-flagged"}`}>
+                  <p className="font-mono text-[13px] text-ink-3">{reference}</p>
+                  <p className={`text-[16.5px] font-semibold ${verified ? "text-status-verified" : "text-status-flagged"}`}>
                     {verified ? t("check.verified") : t("check.notVerified")}
                   </p>
                   {verified && result.approvedAt ? (
-                    <p className="text-[13.5px] text-ink-2">
+                    <p className="text-[15px] text-ink-2">
                       {t("check.approvedOn", { date: formatDate(locale, result.approvedAt) })}
                     </p>
                   ) : (
-                    <p className="text-[13.5px] text-ink-2">
+                    <p className="text-[15px] text-ink-2">
                       {t("check.statusNow", { status: t(`status.${result.status}`) })}
                     </p>
                   )}
-                  <p className={`text-[13.5px] ${result.chain.intact ? "text-ink-2" : "font-medium text-status-flagged"}`}>
+                  <p className={`text-[15px] ${result.chain.intact ? "text-ink-2" : "font-medium text-status-flagged"}`}>
                     {result.chain.intact
                       ? t("check.chainIntact", { count: result.chain.entries })
                       : t("check.chainBroken")}
@@ -159,9 +159,9 @@ export default async function CheckPage({
           )}
         </div>
 
-        <p className="text-[12px] text-muted-foreground">{t("check.prototype")}</p>
+        <p className="text-[13px] text-muted-foreground">{t("check.prototype")}</p>
         <div className="flex items-center justify-between gap-4">
-          <Link href="/login" className="text-[13px] text-navy underline underline-offset-2">
+          <Link href="/login" className="text-[14.5px] text-navy underline underline-offset-2">
             {t("check.signIn")}
           </Link>
           <div className="w-56"><LanguageSwitcher tone="paper" /></div>

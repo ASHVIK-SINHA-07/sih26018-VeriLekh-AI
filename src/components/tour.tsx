@@ -203,14 +203,14 @@ export function Tour({ screen }: { screen: TourScreen }) {
         <h2 id={titleId} className="mt-1 font-serif text-[17px] text-navy">
           {t(`tour.${step.key}.title`)}
         </h2>
-        <p id={`${titleId}-body`} className="mt-1.5 text-[13.5px] leading-relaxed text-ink-2">
+        <p id={`${titleId}-body`} className="mt-1.5 text-[15px] leading-relaxed text-ink-2">
           {t(`tour.${step.key}.body`)}
         </p>
         <div className="mt-4 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={finish}
-            className="text-[12.5px] text-muted-foreground underline-offset-2 hover:text-navy hover:underline"
+            className="text-[14px] text-muted-foreground underline-offset-2 hover:text-navy hover:underline"
           >
             {t("tour.skip")}
           </button>
@@ -219,7 +219,7 @@ export function Tour({ screen }: { screen: TourScreen }) {
               <button
                 type="button"
                 onClick={back}
-                className="border border-rule px-3 py-1.5 text-[12.5px] transition-colors hover:border-navy hover:text-navy"
+                className="border border-rule px-3 py-1.5 text-[14px] transition-colors hover:border-navy hover:text-navy"
               >
                 {t("tour.back")}
               </button>
@@ -227,7 +227,7 @@ export function Tour({ screen }: { screen: TourScreen }) {
             <button
               type="button"
               onClick={next}
-              className="bg-navy px-3 py-1.5 text-[12.5px] font-medium text-white transition-opacity hover:opacity-90"
+              className="bg-navy px-3 py-1.5 text-[14px] font-medium text-white transition-opacity hover:opacity-90"
             >
               {last ? t("tour.done") : t("tour.next")}
             </button>
@@ -247,8 +247,8 @@ export function TourButton({ tone }: { tone: "paper" | "rail" }) {
       onClick={() => window.dispatchEvent(new Event(TOUR_EVENT))}
       className={
         tone === "paper"
-          ? "mb-2 w-full border border-rule px-3 py-1.5 text-[12.5px] text-ink-2 transition-colors hover:border-navy hover:text-navy"
-          : "w-full border border-white/15 py-1.5 text-[12px] text-rail-muted transition-colors hover:border-white/35 hover:text-white"
+          ? "mb-2 w-full border border-rule px-3 py-1.5 text-[14px] text-ink-2 transition-colors hover:border-navy hover:text-navy"
+          : "w-full border border-white/15 py-1.5 text-[13px] text-rail-muted transition-colors hover:border-white/35 hover:text-white"
       }
     >
       {t("tour.replay")}

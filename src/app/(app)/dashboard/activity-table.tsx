@@ -48,7 +48,7 @@ export function ActivityTable({
   const { t } = useI18n();
 
   return (
-    <table className="w-full text-[13px]">
+    <table className="w-full text-[14.5px]">
       <thead>
         <tr className="border-b border-hairline bg-panel-alt">
           <th className="w-8" />
@@ -79,13 +79,13 @@ export function ActivityTable({
                 <td className="px-3 py-2.5 font-medium">{row.filename}</td>
                 <td className="hidden px-3 py-2.5 text-ink-2 md:table-cell">{row.village ?? "—"}</td>
                 <td className="hidden px-3 py-2.5 text-ink-2 sm:table-cell">{row.district ?? "—"}</td>
-                <td className="hidden px-3 py-2.5 font-mono text-[11.5px] text-muted-foreground tabular-nums lg:table-cell">
+                <td className="hidden px-3 py-2.5 font-mono text-[12.5px] text-muted-foreground tabular-nums lg:table-cell">
                   {row.ulpin ?? "—"}
                 </td>
                 <td className="px-3 py-2.5">
                   <StatusBadge status={row.status} />
                 </td>
-                <td className="hidden px-3 py-2.5 text-right text-[12px] text-muted-foreground tabular-nums sm:table-cell">
+                <td className="hidden px-3 py-2.5 text-right text-[13px] text-muted-foreground tabular-nums sm:table-cell">
                   {row.updatedLabel}
                 </td>
               </tr>
@@ -102,14 +102,14 @@ export function ActivityTable({
                           return (
                             <div key={field}>
                               <p className="label-cap">{t(`fields.${field}`)}</p>
-                              <p className="mt-0.5 text-[13px]">
+                              <p className="mt-0.5 text-[14.5px]">
                                 {row.fields?.[field] ?? (
                                   <span className="text-status-flagged">{t("dashboard.notRead")}</span>
                                 )}
                               </p>
                               {typeof score === "number" ? (
                                 <p
-                                  className={`text-[11px] tabular-nums ${low ? "text-low-confidence" : "text-muted-foreground"}`}
+                                  className={`text-[12px] tabular-nums ${low ? "text-low-confidence" : "text-muted-foreground"}`}
                                 >
                                   {asPercent(score)}
                                 </p>
@@ -119,7 +119,7 @@ export function ActivityTable({
                         })}
                       </div>
                     ) : (
-                      <p className="pl-8 text-[13px] text-muted-foreground">
+                      <p className="pl-8 text-[14.5px] text-muted-foreground">
                         {t("dashboard.notReadYet")}
                       </p>
                     )}
@@ -127,7 +127,7 @@ export function ActivityTable({
                     {row.issueTexts.length > 0 ? (
                       <ul className="mt-4 space-y-1 border-l-2 border-status-flagged pl-3 sm:ml-8">
                         {row.issueTexts.map((text, index) => (
-                          <li key={index} className="text-[12.5px] text-ink-2">
+                          <li key={index} className="text-[14px] text-ink-2">
                             {text}
                           </li>
                         ))}
@@ -137,7 +137,7 @@ export function ActivityTable({
                     {!readOnly && REVIEWABLE_STATUSES.includes(row.status) ? (
                       <Link
                         href={`/verify/${row.id}`}
-                        className="mt-4 ml-8 inline-block border border-navy px-3 py-1.5 text-[12.5px] font-medium text-navy transition-colors hover:bg-navy hover:text-white"
+                        className="mt-4 ml-8 inline-block border border-navy px-3 py-1.5 text-[14px] font-medium text-navy transition-colors hover:bg-navy hover:text-white"
                       >
                         {t("dashboard.openForReview")}
                       </Link>

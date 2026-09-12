@@ -41,7 +41,7 @@ export function NgdrsPanel({ ulpin }: { ulpin: string }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2>{t("ngdrs.title")}</h2>
-          <p className="text-[12px] text-muted-foreground">{t("ngdrs.note")}</p>
+          <p className="text-[13px] text-muted-foreground">{t("ngdrs.note")}</p>
         </div>
         <Button variant="outline" onClick={() => void submit()} disabled={loading}>
           {loading ? t("ngdrs.pushing") : t("ngdrs.push")}
@@ -55,7 +55,7 @@ export function NgdrsPanel({ ulpin }: { ulpin: string }) {
       {payload ? (
         <div className="space-y-2">
           <p className="label-cap text-terracotta">{t("ngdrs.responseLabel")}</p>
-          <pre className="max-h-80 overflow-auto border border-hairline bg-panel-alt p-3 text-[11.5px] leading-relaxed">
+          <pre className="max-h-80 overflow-auto border border-hairline bg-panel-alt p-3 text-[12.5px] leading-relaxed">
             {payload}
           </pre>
         </div>

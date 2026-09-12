@@ -69,7 +69,7 @@ export function LoginForm() {
           </button>
         </div>
         {capsLock ? (
-          <p className="text-[12px] text-low-confidence">{t("login.capsLock")}</p>
+          <p className="text-[13px] text-low-confidence">{t("login.capsLock")}</p>
         ) : null}
       </div>
 

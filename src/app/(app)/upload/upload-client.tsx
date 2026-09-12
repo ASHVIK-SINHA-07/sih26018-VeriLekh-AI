@@ -202,8 +202,8 @@ export function UploadClient({ recent }: { recent: RecentUpload[] }) {
             : "border-rule bg-panel"
         }`}
       >
-        <p className="text-[15px] font-semibold text-navy">{t("upload.drop")}</p>
-        <p className="mt-1 text-[13px] text-muted-foreground">{t("upload.browseHint")}</p>
+        <p className="text-[16.5px] font-semibold text-navy">{t("upload.drop")}</p>
+        <p className="mt-1 text-[14.5px] text-muted-foreground">{t("upload.browseHint")}</p>
 
         <Button
           type="button"
@@ -238,7 +238,7 @@ export function UploadClient({ recent }: { recent: RecentUpload[] }) {
             {queue.map((item) => (
               <li
                 key={item.key}
-                className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-[13px] sm:grid sm:grid-cols-[1fr_18.5rem_4.5rem]"
+                className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-[14.5px] sm:grid sm:grid-cols-[1fr_18.5rem_4.5rem]"
               >
                 <span className="w-full min-w-0 truncate font-medium sm:w-auto">{item.filename}</span>
 
@@ -264,7 +264,7 @@ export function UploadClient({ recent }: { recent: RecentUpload[] }) {
                   {item.documentId && item.stage === "done" ? (
                     <Link
                       href={`/verify/${item.documentId}`}
-                      className="text-[12.5px] font-medium text-navy hover:underline"
+                      className="text-[14px] font-medium text-navy hover:underline"
                     >
                       {t("common.review")}
                     </Link>
@@ -291,7 +291,7 @@ export function UploadClient({ recent }: { recent: RecentUpload[] }) {
               return (
                 <li
                   key={document.id}
-                  className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-[13px] transition-colors hover:bg-panel-alt/70 sm:grid sm:grid-cols-[1fr_9rem_10.5rem_7rem_4.5rem]"
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-[14.5px] transition-colors hover:bg-panel-alt/70 sm:grid sm:grid-cols-[1fr_9rem_10.5rem_7rem_4.5rem]"
                 >
                   <span className="w-full min-w-0 truncate font-medium sm:w-auto">
                     {document.filename}
@@ -302,14 +302,14 @@ export function UploadClient({ recent }: { recent: RecentUpload[] }) {
                   <span>
                     <StatusBadge status={document.status} />
                   </span>
-                  <span className="text-right text-[12px] text-muted-foreground tabular-nums">
+                  <span className="text-right text-[13px] text-muted-foreground tabular-nums">
                     {document.updatedLabel}
                   </span>
                   <span className="text-right">
                     {reviewable ? (
                       <Link
                         href={`/verify/${document.id}`}
-                        className="text-[12.5px] font-medium text-navy hover:underline"
+                        className="text-[14px] font-medium text-navy hover:underline"
                       >
                         {t("common.review")}
                       </Link>

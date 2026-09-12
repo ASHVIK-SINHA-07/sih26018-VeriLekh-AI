@@ -52,7 +52,7 @@ export function ScanViewer({
         className="h-[34rem] w-full bg-panel-alt"
         aria-label={t("scan.alt", { filename })}
       >
-        <p className="p-4 text-[13px] text-muted-foreground">
+        <p className="p-4 text-[14.5px] text-muted-foreground">
           {t("scan.pdfFallback")}{" "}
           <a href={src} className="text-navy underline">{t("scan.openDirectly")}</a>
         </p>
@@ -112,7 +112,7 @@ export function ScanViewer({
         >
           <Minus className="size-3.5" />
         </button>
-        <span className="min-w-[3.25rem] border-x border-rule px-2 py-1.5 text-center text-[12px] tabular-nums">
+        <span className="min-w-[3.25rem] border-x border-rule px-2 py-1.5 text-center text-[13px] tabular-nums">
           {Math.round(zoom * 100)}%
         </span>
         <button

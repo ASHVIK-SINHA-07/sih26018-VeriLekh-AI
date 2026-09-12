@@ -116,7 +116,7 @@ export function VerifyClient(props: Props) {
       <div className="border-b border-hairline bg-panel px-4 py-4 sm:px-7">
         <Link
           href="/verify"
-          className="text-[12.5px] text-navy hover:underline"
+          className="text-[14px] text-navy hover:underline"
         >
           {t("verify.back")}
         </Link>
@@ -124,7 +124,7 @@ export function VerifyClient(props: Props) {
           <h1 className="text-[1.375rem]">{props.filename}</h1>
           <StatusBadge status={props.status} />
           {props.ulpin ? (
-            <span className="border border-hairline bg-panel-alt px-2 py-1 font-mono text-[11.5px] tracking-tight text-ink-2 tabular-nums">
+            <span className="border border-hairline bg-panel-alt px-2 py-1 font-mono text-[12.5px] tracking-tight text-ink-2 tabular-nums">
               {props.ulpin}
             </span>
           ) : null}
@@ -144,7 +144,7 @@ export function VerifyClient(props: Props) {
                 : "border-l-low-confidence"
           } border-y border-r border-y-hairline border-r-hairline`}
         >
-          <p className="text-[13.5px] font-semibold text-foreground">
+          <p className="text-[15px] font-semibold text-foreground">
             {props.validation.status === "DUPLICATE"
               ? t("verify.duplicateTitle")
               : props.validation.status === "PASS"
@@ -157,13 +157,13 @@ export function VerifyClient(props: Props) {
           </p>
           <ul className="mt-2 space-y-1">
             {props.validation.issues.map((issue, index) => (
-              <li key={`${issue.field}-${index}`} className="text-[12.5px] text-ink-2">
+              <li key={`${issue.field}-${index}`} className="text-[14px] text-ink-2">
                 · {props.issueTexts[index] ?? issue.issue}
               </li>
             ))}
           </ul>
           {props.duplicateOf ? (
-            <p className="mt-2 text-[12.5px]">
+            <p className="mt-2 text-[14px]">
               <Link
                 href={`/verify/${props.duplicateOf.id}`}
                 className="text-navy underline underline-offset-2"
@@ -188,7 +188,7 @@ export function VerifyClient(props: Props) {
           <div>
             <ScanViewer src={scanUrl} filename={props.filename} isPdf={isPdf} />
           </div>
-          <p className="border-t border-hairline px-4 py-2 text-[12px] text-muted-foreground">
+          <p className="border-t border-hairline px-4 py-2 text-[13px] text-muted-foreground">
             {t("verify.scanNote")}
           </p>
         </Panel>
@@ -226,14 +226,14 @@ export function VerifyClient(props: Props) {
           </Panel>
 
           {error ? (
-            <p role="alert" className="border border-status-flagged/40 bg-status-flagged/[0.05] px-3 py-2 text-[13px] text-status-flagged">
+            <p role="alert" className="border border-status-flagged/40 bg-status-flagged/[0.05] px-3 py-2 text-[14.5px] text-status-flagged">
               {locale === "en" && error.detail ? error.detail : t(error.key)}
             </p>
           ) : null}
 
           {/* ------------------------------------------------------ actions */}
           {decided ? (
-            <p className="border border-hairline bg-panel px-4 py-3 text-[13px] text-muted-foreground">
+            <p className="border border-hairline bg-panel px-4 py-3 text-[14.5px] text-muted-foreground">
               {props.status === "VERIFIED" ? t("verify.decidedApproved") : t("verify.decidedRejected")}
             </p>
           ) : (
@@ -251,7 +251,7 @@ export function VerifyClient(props: Props) {
               >
                 {submitting === "approve" ? t("verify.approving") : t("verify.approve")}
               </Button>
-              <span className="text-[12px] text-muted-foreground">
+              <span className="text-[13px] text-muted-foreground">
                 {props.approveHint}
               </span>
             </div>

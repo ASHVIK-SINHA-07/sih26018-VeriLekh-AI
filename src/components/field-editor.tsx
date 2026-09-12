@@ -48,7 +48,7 @@ export function FieldEditor({
           </span>
         ) : typeof confidence === "number" ? (
           <span
-            className={`text-[11px] tabular-nums ${lowConfidence ? "text-low-confidence" : "text-muted-foreground"}`}
+            className={`text-[12px] tabular-nums ${lowConfidence ? "text-low-confidence" : "text-muted-foreground"}`}
           >
             {t("verify.confident", { pct: asPercent(confidence) })}
           </span>

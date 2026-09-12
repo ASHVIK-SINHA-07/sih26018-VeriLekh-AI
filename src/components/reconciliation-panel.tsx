@@ -20,9 +20,9 @@ function Row({
 }: { label: string; value: React.ReactNode; tone?: "conflict" | "muted" }) {
   return (
     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 py-1.5">
-      <span className="w-[132px] shrink-0 text-[12px] text-ink-3">{label}</span>
+      <span className="w-[132px] shrink-0 text-[13px] text-ink-3">{label}</span>
       <span
-        className={`text-[12.5px] ${
+        className={`text-[14px] ${
           tone === "conflict" ? "text-status-flagged" : tone === "muted" ? "text-ink-3" : "text-foreground"
         }`}
       >
@@ -49,13 +49,13 @@ export async function ReconciliationPanel({ result }: { result: ReconciliationSu
       }`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-hairline px-4 py-3">
-        <p className="text-[13.5px] font-semibold text-foreground">{t("recon.title")}</p>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-3">{t("recon.simulated")}</p>
+        <p className="text-[15px] font-semibold text-foreground">{t("recon.title")}</p>
+        <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3">{t("recon.simulated")}</p>
       </div>
 
       <div className="px-4 py-3">
         {notFound ? (
-          <p className="text-[12.5px] text-ink-2">{t("recon.notFound")}</p>
+          <p className="text-[14px] text-ink-2">{t("recon.notFound")}</p>
         ) : (
           <>
             <div className="flex flex-wrap gap-x-5 gap-y-1.5 pb-2">
@@ -64,7 +64,7 @@ export async function ReconciliationPanel({ result }: { result: ReconciliationSu
                 const hasConflict = result.conflicts.some((c) => c.source === source);
                 const isStale = result.stale.some((s) => s.source === source);
                 return (
-                  <span key={source} className="text-[12.5px]">
+                  <span key={source} className="text-[14px]">
                     <span className="text-ink-3">{t(`sources.${source}`)}</span>{" "}
                     <span
                       className={
@@ -89,7 +89,7 @@ export async function ReconciliationPanel({ result }: { result: ReconciliationSu
             </div>
 
             {result.conflicts.length === 0 && result.stale.length === 0 ? (
-              <p className="border-t border-hairline pt-2 text-[12.5px] text-ink-2">{t("recon.allAgree")}</p>
+              <p className="border-t border-hairline pt-2 text-[14px] text-ink-2">{t("recon.allAgree")}</p>
             ) : (
               <div className="divide-y divide-hairline border-t border-hairline">
                 {[...byField.entries()].map(([field, findings]) => (

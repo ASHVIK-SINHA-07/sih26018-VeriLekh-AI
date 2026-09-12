@@ -129,7 +129,7 @@ export default async function DashboardPage({
             {/* Two labelled figures rather than one sentence with two numbers
                 in it: the sentence needs different grammar for every count in
                 every language, and the figures do not. */}
-            <p className="text-[13.5px] text-foreground">
+            <p className="text-[15px] text-foreground">
               <span className="font-semibold">{t("dashboard.learningTitle")}</span>{" "}
               {t("dashboard.learningCorrected")}{" "}
               <span className="font-semibold tabular-nums">{asCount(learning.distinctCorrections)}</span>
@@ -137,7 +137,7 @@ export default async function DashboardPage({
               {t("dashboard.learningApplied")}{" "}
               <span className="font-semibold tabular-nums">{asCount(learning.timesApplied)}</span>
             </p>
-            <p className="mt-1 text-[12.5px] text-ink-2">{t("dashboard.learningNote")}</p>
+            <p className="mt-1 text-[14px] text-ink-2">{t("dashboard.learningNote")}</p>
           </div>
         ) : null}
 

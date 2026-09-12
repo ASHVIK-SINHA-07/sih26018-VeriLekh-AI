@@ -19,7 +19,7 @@ export function DistrictFilter({
   const { t } = useI18n();
 
   return (
-    <label className="flex items-center gap-2 text-[13px]">
+    <label className="flex items-center gap-2 text-[14.5px]">
       <span className="label-cap">{t("dashboard.districtFilter")}</span>
       <select
         value={current}
@@ -27,7 +27,7 @@ export function DistrictFilter({
           const value = event.target.value;
           router.push(value ? `/dashboard?district=${encodeURIComponent(value)}` : "/dashboard");
         }}
-        className="h-8 border border-rule bg-panel px-2 text-[13px] outline-none focus-visible:border-navy"
+        className="h-8 border border-rule bg-panel px-2 text-[14.5px] outline-none focus-visible:border-navy"
       >
         <option value="">{t("dashboard.allDistrictsOption")}</option>
         {districts.map((row) => (

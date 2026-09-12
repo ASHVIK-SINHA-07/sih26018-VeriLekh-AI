@@ -19,15 +19,15 @@ function RateCell({
   if (checked === 0) {
     return (
       <div>
-        <p className="text-[12.5px] text-ink-3">{label}</p>
-        <p className="text-[12px] text-ink-3">{t("risk.nothingChecked")}</p>
+        <p className="text-[14px] text-ink-3">{label}</p>
+        <p className="text-[13px] text-ink-3">{t("risk.nothingChecked")}</p>
       </div>
     );
   }
   return (
     <div>
-      <p className="text-[12.5px] text-ink-3">{label}</p>
-      <p className={`text-[13px] tabular-nums ${flagged > 0 ? "font-semibold text-status-flagged" : "text-foreground"}`}>
+      <p className="text-[14px] text-ink-3">{label}</p>
+      <p className={`text-[14.5px] tabular-nums ${flagged > 0 ? "font-semibold text-status-flagged" : "text-foreground"}`}>
         {asPercent(rate)}
         <span className="text-ink-3"> — {t("risk.rate", { flagged, checked })}</span>
       </p>
@@ -63,8 +63,8 @@ export async function DistrictRiskPanel({ rows }: { rows: DistrictRisk[] }) {
               }`}
             >
               <div className="w-[160px] shrink-0">
-                <p className="text-[13.5px] font-semibold text-foreground">{r.district}</p>
-                <p className="text-[12px] text-ink-3">
+                <p className="text-[15px] font-semibold text-foreground">{r.district}</p>
+                <p className="text-[13px] text-ink-3">
                   {t("risk.records", { count: r.recordCount, quality: r.meanQuality })}
                 </p>
               </div>
@@ -86,7 +86,7 @@ export async function DistrictRiskPanel({ rows }: { rows: DistrictRisk[] }) {
               />
 
               <div className="ml-auto text-right">
-                <p className="text-[12.5px] text-ink-3">{t("risk.sendSomeone")}</p>
+                <p className="text-[14px] text-ink-3">{t("risk.sendSomeone")}</p>
                 <p
                   className={`text-[20px] font-semibold tabular-nums leading-none ${
                     r.needsFieldVerification > 0 ? "text-status-flagged" : "text-status-verified"

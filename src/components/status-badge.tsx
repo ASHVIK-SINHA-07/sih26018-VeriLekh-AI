@@ -23,7 +23,7 @@ export function StatusBadge({ status }: { status: DocumentStatus }) {
   const { t } = useI18n();
   return (
     <span
-      className={`inline-flex items-center border px-2 py-[3px] text-[11px] font-medium tracking-[0.06em] whitespace-nowrap uppercase ${STYLES[status]}`}
+      className={`inline-flex items-center border px-2 py-[3px] text-[12px] font-medium tracking-[0.06em] whitespace-nowrap uppercase ${STYLES[status]}`}
     >
       {t(`status.${status}`)}
     </span>

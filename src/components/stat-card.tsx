@@ -33,7 +33,7 @@ export function StatCard({
         {value}
       </p>
       {hint ? (
-        <p className="mt-2 text-[12px] text-muted-foreground">{hint}</p>
+        <p className="mt-2 text-[13px] text-muted-foreground">{hint}</p>
       ) : null}
     </div>
   );

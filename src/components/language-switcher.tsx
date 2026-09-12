@@ -36,7 +36,7 @@ export function LanguageSwitcher({
   return (
     <label className="flex items-center gap-2">
       {compact ? null : (
-        <span className={`text-[11px] ${tone === "rail" ? "text-rail-muted" : "text-muted-foreground"}`}>
+        <span className={`text-[12px] ${tone === "rail" ? "text-rail-muted" : "text-muted-foreground"}`}>
           {t("nav.language")}
         </span>
       )}
@@ -44,7 +44,7 @@ export function LanguageSwitcher({
         value={locale}
         onChange={(event) => choose(event.target.value as Locale)}
         aria-label={t("nav.language")}
-        className={`h-7 min-w-0 border px-1.5 text-[12.5px] outline-none focus-visible:border-navy ${compact ? "w-[7.5rem]" : "flex-1"} ${control}`}
+        className={`${compact ? "h-9" : "h-8"} min-w-0 border px-2 text-[14px] outline-none focus-visible:border-navy ${compact ? "w-[8.5rem]" : "flex-1"} ${control}`}
       >
         {LOCALES.map((code) => (
           <option key={code} value={code} lang={code}>

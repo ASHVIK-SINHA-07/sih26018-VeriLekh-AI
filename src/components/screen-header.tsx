@@ -18,7 +18,7 @@ export function ScreenHeader({
         <div>
           <h1>{title}</h1>
           {subtitle ? (
-            <p className="mt-1 text-[13px] text-muted-foreground">{subtitle}</p>
+            <p className="mt-1 text-[14.5px] text-muted-foreground">{subtitle}</p>
           ) : null}
         </div>
         {children}

@@ -42,7 +42,7 @@ export function TopNavLinks({
             key={section.href}
             href={section.href}
             aria-current={active ? "page" : undefined}
-            className={`relative flex items-center gap-2 px-3 text-[13.5px] transition-colors ${
+            className={`relative flex items-center gap-2 px-4 text-[15.5px] transition-colors ${
               layout === "row" ? "" : "py-2.5"
             } ${active ? "font-medium text-white" : "text-rail-muted hover:text-white"}`}
           >
@@ -55,7 +55,7 @@ export function TopNavLinks({
                 }
               />
             ) : null}
-            <Icon className="size-4" strokeWidth={1.75} />
+            <Icon className="size-[18px]" strokeWidth={1.75} />
             {t(section.label)}
           </Link>
         );

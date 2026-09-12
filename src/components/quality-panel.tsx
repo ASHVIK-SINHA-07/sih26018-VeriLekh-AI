@@ -59,8 +59,8 @@ export async function QualityPanel({
   return (
     <div data-tour="review-quality" className={`border border-hairline border-l-[3px] ${style.ring} bg-panel`}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-hairline px-4 py-3">
-        <p className="text-[13.5px] font-semibold text-foreground">{t("quality.title")}</p>
-        <p className="text-[12.5px] text-ink-2">{t("quality.weights")}</p>
+        <p className="text-[15px] font-semibold text-foreground">{t("quality.title")}</p>
+        <p className="text-[14px] text-ink-2">{t("quality.weights")}</p>
       </div>
 
       <div className="flex flex-col gap-5 px-4 py-4 sm:flex-row sm:items-start">
@@ -68,7 +68,7 @@ export async function QualityPanel({
           <span className={`text-[40px] font-semibold leading-none tabular-nums ${style.text}`}>
             {quality.score}
           </span>
-          <span className={`text-[12px] font-semibold uppercase tracking-[0.08em] ${style.text}`}>
+          <span className={`text-[13px] font-semibold uppercase tracking-[0.08em] ${style.text}`}>
             {t(`quality.${quality.band}`)}
           </span>
         </div>
@@ -77,11 +77,11 @@ export async function QualityPanel({
           {components.map((c) => (
             <div key={c.name}>
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-[12.5px] font-medium text-foreground">{c.name}</span>
-                <span className="text-[12.5px] tabular-nums text-ink-2">{c.score}</span>
+                <span className="text-[14px] font-medium text-foreground">{c.name}</span>
+                <span className="text-[14px] tabular-nums text-ink-2">{c.score}</span>
               </div>
               <Bar value={c.score} />
-              <p className="mt-1.5 text-[11.5px] leading-snug text-ink-2">{t(DETAIL_KEY[c.detailCode], c.detailParams)}</p>
+              <p className="mt-1.5 text-[12.5px] leading-snug text-ink-2">{t(DETAIL_KEY[c.detailCode], c.detailParams)}</p>
             </div>
           ))}
         </div>
@@ -89,12 +89,12 @@ export async function QualityPanel({
 
       {quality.deductionItems.length > 0 ? (
         <div className="border-t border-hairline px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-ink-3">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.09em] text-ink-3">
             {t("quality.deductionsTitle")}
           </p>
           <ul className="mt-1.5 space-y-1">
             {quality.deductionItems.map((d, i) => (
-              <li key={i} className="text-[12.5px] text-ink-2">· {deductionText(t, locale, d)}</li>
+              <li key={i} className="text-[14px] text-ink-2">· {deductionText(t, locale, d)}</li>
             ))}
           </ul>
         </div>
@@ -114,17 +114,17 @@ export async function ProvenanceNote({ chain, framed = false }: { chain: ChainVe
   const { t } = await getI18n();
   return (
     <div className={`flex flex-wrap items-baseline gap-x-2 gap-y-1 px-4 py-3 ${framed ? "border border-hairline bg-panel" : "border-t border-hairline"}`}>
-      <span className="text-[11px] font-semibold uppercase tracking-[0.09em] text-ink-3">
+      <span className="text-[12px] font-semibold uppercase tracking-[0.09em] text-ink-3">
         {t("provenance.label")}
       </span>
       {chain.intact ? (
-        <span className="text-[12.5px] text-ink-2">
+        <span className="text-[14px] text-ink-2">
           <span className="font-semibold text-status-verified">{t("provenance.verified")}</span>
           {" — "}
           {chain.entries === 1 ? t("provenance.one") : t("provenance.many", { count: chain.entries })}
         </span>
       ) : (
-        <span className="text-[12.5px] text-ink-2">
+        <span className="text-[14px] text-ink-2">
           <span className="font-semibold text-status-flagged">{t("provenance.broken")}</span>
           {" — "}
           {t("provenance.brokenAt", { at: chain.brokenAtSeq + 1, count: chain.entries })}{" "}

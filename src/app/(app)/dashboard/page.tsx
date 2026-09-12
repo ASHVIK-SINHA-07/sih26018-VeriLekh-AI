@@ -10,6 +10,7 @@ import { StatCard } from "@/components/stat-card";
 import { Panel } from "@/components/panel";
 import { EmptyState } from "@/components/empty-state";
 import { DistrictRiskPanel } from "@/components/district-risk-panel";
+import { DistrictMap } from "@/components/district-map";
 import { getI18n } from "@/i18n/server";
 import { formatCount, formatDate, relativeTime, renderFinding } from "@/i18n/translate";
 import type { Metadata } from "next";
@@ -41,7 +42,7 @@ export default async function DashboardPage({
   const asCount = (n: number) => formatCount(locale, n);
   const readOnly = session.user.role === "VIEWER";
 
-  const [stats, learning, districtRisk, recent] = await Promise.all([
+  const [stats, learning, districtRisk, recent, unfilteredRisk] = await Promise.all([
     getDashboardStats(district),
     // Not filtered by district: what the recogniser has been taught applies
     // to every page it reads afterwards, wherever that page came from.
@@ -53,6 +54,9 @@ export default async function DashboardPage({
       take: 12,
       include: { record: true, validation: true, mutation: { select: { village: true, district: true } } },
     }),
+    // The map always shows every district, so a filtered dashboard can be
+    // widened again from it.
+    district ? getDistrictRisk() : Promise.resolve(null),
   ]);
 
   const rows: ActivityRow[] = recent.map((row) => ({
@@ -148,6 +152,15 @@ export default async function DashboardPage({
         >
           <TrendChart data={stats.trend.map((point) => ({ ...point, label: formatDate(locale, point.date, "short") }))} />
         </Panel>
+
+        <DistrictMap
+          districts={(unfilteredRisk ?? districtRisk).map((d) => ({
+            district: d.district,
+            records: d.recordCount,
+            needVisit: d.needsFieldVerification,
+          }))}
+          selected={district}
+        />
 
         <DistrictRiskPanel rows={districtRisk} />
 

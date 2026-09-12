@@ -4,7 +4,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { Logo } from "@/components/logo";
 import { TourButton } from "@/components/tour";
 import { TopNavLinks } from "@/components/top-nav-links";
-import { AccountMenu, MobileMenu } from "@/components/top-nav-menus";
+import { AccountMenu, MobileMenu, NotificationBell } from "@/components/top-nav-menus";
 import { getI18n } from "@/i18n/server";
 import type { Role } from "@/types";
 
@@ -44,7 +44,9 @@ export async function TopNav({ name, role }: { name: string; role: Role }) {
 
         <TopNavLinks role={role} layout="row" className="hidden lg:flex" />
 
-        <div className="hidden items-center justify-end gap-4 lg:flex">
+        <div className="flex items-center justify-end gap-2 lg:gap-4">
+          {role === "VIEWER" ? null : <NotificationBell />}
+          <div className="hidden items-center gap-4 lg:flex">
           <LanguageSwitcher compact />
           <AccountMenu name={name} initials={initials} roleLabel={roleLabel}>
             <TourButton tone="paper" />
@@ -57,7 +59,7 @@ export async function TopNav({ name, role }: { name: string; role: Role }) {
               </button>
             </form>
           </AccountMenu>
-        </div>
+          </div>
 
         <MobileMenu>
           <TopNavLinks role={role} layout="column" />
@@ -85,6 +87,7 @@ export async function TopNav({ name, role }: { name: string; role: Role }) {
             </form>
           </div>
         </MobileMenu>
+        </div>
       </div>
     </header>
   );

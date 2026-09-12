@@ -5,7 +5,7 @@
  * protocol using Node's built-in WebSocket, so no browser-automation package
  * is added to the project. Signs in first, then captures an authenticated page.
  *
- * Usage: [SHOT_LANG=hi] node scripts/screenshot.mjs <path> <out.png> [email] [password]
+ * Usage: [SHOT_LANG=hi] [SHOT_NO_TOUR=1] [SHOT_CLICK=selector] node scripts/screenshot.mjs <path> <out.png> [email] [password]
  */
 import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -108,6 +108,12 @@ try {
     await cdp(ws, "Network.setCookie",
       { name: "lang", value: process.env.SHOT_LANG, domain: "localhost", path: "/" }, id);
   }
+  // SHOT_NO_TOUR=1 marks every guided tour as seen, so none covers the page.
+  if (process.env.SHOT_NO_TOUR) {
+    await cdp(ws, "Page.addScriptToEvaluateOnNewDocument", {
+      source: "for (const s of ['upload','queue','review','dashboard']) localStorage.setItem('verilekh.tour.' + s, 'seen');",
+    }, id);
+  }
 
   await cdp(ws, "Page.navigate", { url: `${BASE}${targetPath}` }, id);
   await new Promise((resolve) => {
@@ -121,6 +127,12 @@ try {
     setTimeout(resolve, 15000);
   });
   await sleep(2500); // fonts, charts
+  // SHOT_CLICK=<css selector> clicks something first — to open a menu, say.
+  if (process.env.SHOT_CLICK) {
+    await cdp(ws, "Runtime.evaluate",
+      { expression: `document.querySelector(${JSON.stringify(process.env.SHOT_CLICK)})?.click()` }, id);
+    await sleep(1500);
+  }
 
   const { data } = await cdp(ws, "Page.captureScreenshot",
     { format: "png", captureBeyondViewport: true }, id);

@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Menu, X } from "lucide-react";
+import Link from "next/link";
+import { Bell, ChevronDown, Menu, X } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { TOUR_EVENT } from "@/components/tour";
 
@@ -109,6 +110,169 @@ export function MobileMenu({ children }: { children: React.ReactNode }) {
       {open ? (
         <div className="fixed inset-x-0 top-16 bottom-0 overflow-y-auto border-t border-white/10 bg-rail">
           {children}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+
+/* --------------------------------------------------------- notifications */
+
+interface NoticeItem {
+  id: string;
+  kind: "order" | "flagged";
+  filename: string;
+  place: string;
+  finding: string | null;
+  updatedAt: string;
+  when: string;
+}
+
+/** When this person last opened the list, in this browser. */
+const SEEN_KEY = "verilekh.notifications.seen";
+/** How often to look again while a page is open. */
+const REFRESH_MS = 60_000;
+
+/**
+ * What is waiting for you: mutation orders awaiting a decision, and records
+ * with problems found. Asked of the server on every page change, every
+ * minute, and when the window regains focus. The count on the bell is what
+ * has changed since you last opened the list.
+ */
+export function NotificationBell() {
+  const [items, setItems] = useState<NoticeItem[]>([]);
+  const [open, setOpen] = useState(false);
+  // Infinity until storage is read, so the badge never flashes on load.
+  const [seenAt, setSeenAt] = useState(Number.POSITIVE_INFINITY);
+  const [newSince, setNewSince] = useState(0);
+  const box = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const { t, locale } = useI18n();
+  useDismiss(open, () => setOpen(false), box);
+
+  useEffect(() => {
+    try {
+      setSeenAt(Number(window.localStorage.getItem(SEEN_KEY) ?? 0));
+    } catch {
+      setSeenAt(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const response = await fetch("/api/notifications", { cache: "no-store" });
+        if (!response.ok) return;
+        const body = (await response.json()) as { items: NoticeItem[] };
+        if (alive) setItems(body.items);
+      } catch {
+        /* offline for a moment: keep what is shown */
+      }
+    };
+    void load();
+    const timer = window.setInterval(load, REFRESH_MS);
+    window.addEventListener("focus", load);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", load);
+    };
+  }, [pathname, locale]);
+
+  const fresh = items.filter((item) => Date.parse(item.updatedAt) > seenAt).length;
+
+  function toggle() {
+    if (!open) {
+      // Mark what was new before opening, then clear the badge.
+      setNewSince(seenAt);
+      const now = Date.now();
+      setSeenAt(now);
+      try {
+        window.localStorage.setItem(SEEN_KEY, String(now));
+      } catch {
+        /* the badge simply returns next visit */
+      }
+    }
+    setOpen(!open);
+  }
+
+  const groups = [
+    { key: "order", title: t("notify.orders"), rows: items.filter((item) => item.kind === "order") },
+    { key: "flagged", title: t("notify.flagged"), rows: items.filter((item) => item.kind === "flagged") },
+  ].filter((group) => group.rows.length > 0);
+
+  return (
+    <div ref={box} className="relative">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-label={fresh > 0 ? t("notify.openWithCount", { count: fresh }) : t("notify.open")}
+        className="relative flex size-9 items-center justify-center text-white/85 transition-colors hover:text-white"
+      >
+        <Bell className="size-5" strokeWidth={1.75} />
+        {fresh > 0 ? (
+          <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-terracotta px-1 text-[11px] leading-none font-semibold text-white tabular-nums">
+            {fresh > 99 ? "99+" : fresh}
+          </span>
+        ) : null}
+      </button>
+
+      {open ? (
+        <div
+          role="dialog"
+          aria-label={t("notify.title")}
+          className="absolute top-full right-0 z-50 mt-2 w-[min(24rem,calc(100vw-2rem))] border border-hairline bg-panel text-foreground shadow-[0_8px_24px_rgba(20,24,31,0.14)]"
+        >
+          <div className="flex items-baseline justify-between gap-3 border-b border-hairline bg-panel-alt px-4 py-2.5">
+            <p className="text-[15px] font-semibold">{t("notify.title")}</p>
+            {items.length > 0 ? (
+              <p className="text-[13px] text-muted-foreground">{t("notify.needYou", { count: items.length })}</p>
+            ) : null}
+          </div>
+
+          <div className="max-h-[26rem] overflow-y-auto">
+            {groups.length === 0 ? (
+              <p className="px-4 py-6 text-[14px] text-muted-foreground">{t("notify.none")}</p>
+            ) : (
+              groups.map((group) => (
+                <section key={group.key} className="border-b border-hairline last:border-b-0">
+                  <p className="label-cap px-4 pt-3 pb-1">
+                    {group.title} · {group.rows.length}
+                  </p>
+                  <ul>
+                    {group.rows.map((item) => (
+                      <li key={item.id}>
+                        <Link href={`/verify/${item.id}`} className="block px-4 py-2.5 transition-colors hover:bg-panel-alt">
+                          <span className="flex items-center gap-2">
+                            {Date.parse(item.updatedAt) > newSince ? (
+                              <span className="size-2 shrink-0 rounded-full bg-terracotta" aria-label={t("notify.isNew")} />
+                            ) : null}
+                            <span className="truncate text-[14px] font-medium text-navy">{item.filename}</span>
+                          </span>
+                          <span className="mt-0.5 block text-[12.5px] text-muted-foreground">
+                            {[item.place, item.when].filter(Boolean).join(" · ")}
+                          </span>
+                          {item.finding ? (
+                            <span className="mt-1 line-clamp-2 block text-[13px] leading-snug text-ink-2">{item.finding}</span>
+                          ) : null}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))
+            )}
+          </div>
+
+          <div className="border-t border-hairline px-4 py-2.5">
+            <Link href="/verify" className="text-[13.5px] font-medium text-navy hover:underline">
+              {t("notify.viewAll")}
+            </Link>
+          </div>
         </div>
       ) : null}
     </div>
